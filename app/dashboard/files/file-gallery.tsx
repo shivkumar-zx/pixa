@@ -143,21 +143,21 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                     {groupMonthYear}
                   </h2>
                 )}
-                <div id={group.id} className="mb-8">
-                  <div className="group/header sticky top-0 bg-background/95 backdrop-blur z-10 py-3 mb-2 flex items-center gap-3 w-fit pr-4 rounded-r-xl">
+                <div id={group.id} className="mb-8 group/date">
+                  <div className="group/header sticky top-0 bg-background z-10 py-3 mb-2 flex items-center gap-3 w-fit pr-4 rounded-r-xl">
+                    <h3 className="text-[15px] font-medium text-foreground tracking-tight">
+                      {group.dateLabel}
+                    </h3>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation()
                         toggleAll(group.files.map(f => f.id), !isGroupSelected)
                       }}
-                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-opacity ${isGroupSelected || selectionMode ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100'} ${isGroupSelected ? 'bg-blue-600 text-white border-none' : 'border-2 border-muted-foreground/50 text-muted-foreground hover:border-foreground hover:text-foreground'}`}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-opacity ${isGroupSelected || selectionMode ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 group-hover/date:opacity-100'} ${isGroupSelected ? 'bg-blue-600 text-white border-none' : 'border-2 border-muted-foreground/50 text-muted-foreground hover:border-foreground hover:text-foreground'}`}
                       title={isGroupSelected ? "Deselect date" : "Select date"}
                     >
                       {isGroupSelected && <Check size={14} strokeWidth={3} />}
                     </button>
-                    <h3 className="text-[15px] font-medium text-foreground tracking-tight">
-                      {group.dateLabel}
-                    </h3>
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-[2px]">
@@ -218,7 +218,7 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                           {/* Selection Checkmark Button */}
                           <button 
                             onClick={(e) => toggleSelection(e, file.id)}
-                            className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'opacity-100 bg-blue-600 text-white border-none scale-100' : 'opacity-0 group-hover:opacity-100 border-2 border-white text-white/0 hover:text-white bg-black/20 hover:bg-black/30 scale-95 hover:scale-100'}`}
+                            className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-150 ${isSelected ? 'opacity-100 bg-blue-600 text-white border-none scale-100 shadow-md' : 'opacity-0 group-hover:opacity-100 border-2 border-white text-white/0 hover:text-slate-900 bg-white/20 hover:bg-white scale-95 hover:scale-100 shadow-sm'}`}
                           >
                             <Check size={14} strokeWidth={3} className={isSelected ? 'opacity-100' : ''} />
                           </button>

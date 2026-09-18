@@ -81,17 +81,17 @@ export default function Topbar({ user }: TopbarProps) {
     .slice(0, 2) || "?"
 
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0 gap-4">
+    <header className="h-[72px] border-b border-border bg-[var(--sidebar-bg)] flex items-center justify-between px-4 sm:px-6 shrink-0 gap-4">
       <div className="flex-1 hidden sm:block"></div>
 
       {/* Search bar */}
       <div className="flex-[2] flex justify-center max-w-2xl">
-        <div className="flex items-center gap-3 bg-muted/60 border border-transparent hover:bg-muted/80 focus-within:bg-background focus-within:border-primary/40 focus-within:shadow-sm rounded-full px-4 py-2 w-full max-w-[480px] text-sm text-foreground transition-all">
-          <Search size={18} className="shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-3 bg-transparent border border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 focus-within:shadow-sm rounded-full px-4 py-2 w-full max-w-[480px] text-sm text-foreground transition-all duration-300 ease-out">
+          <Search size={18} className="shrink-0 text-slate-400 dark:text-slate-500" />
           <input 
             type="text" 
             placeholder="Search your files"
-            className="bg-transparent border-none outline-none w-full placeholder:text-muted-foreground font-medium"
+            className="bg-transparent border-none outline-none w-full placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-900 dark:text-slate-100 transition-all duration-300"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

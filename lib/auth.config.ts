@@ -1,8 +1,6 @@
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig = {
-  trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "super-secret-key-for-development",
   pages: {
     signIn: "/login",
   },

@@ -5,6 +5,8 @@ import Topbar from "@/components/layout/Topbar"
 import { Toaster } from "sonner"
 import { Suspense } from "react"
 
+import prisma from "@/lib/prisma"
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
@@ -20,11 +22,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
     role?: string
   }
 
+  let storageUsed = 0n
+  let storageQuota = 5368709120n // 5GB default
+  
+  if (user.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { storageUsed: true, storageQuota: true }
+    })
+    if (dbUser) {
+      storageUsed = dbUser.storageUsed
+      storageQuota = dbUser.storageQuota
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar userRole={user.role} />
+      <Sidebar 
+        userRole={user.role} 
+        storageUsed={Number(storageUsed)} 
+        storageQuota={Number(storageQuota)} 
+      />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Suspense fallback={<div className="h-14 border-b border-border bg-card shrink-0" />}>
+        <Suspense fallback={<div className="h-[72px] border-b border-border bg-card shrink-0" />}>
           <Topbar user={user} />
         </Suspense>
         <main className="flex-1 overflow-y-auto p-6">

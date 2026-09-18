@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { motion } from "framer-motion"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -49,10 +50,30 @@ const adminNavItems: NavItem[] = [
 
 interface SidebarProps {
   userRole?: string
+  storageUsed?: number
+  storageQuota?: number
 }
 
-export default function Sidebar({ userRole }: SidebarProps) {
+export default function Sidebar({ userRole, storageUsed = 0, storageQuota = 100 }: SidebarProps) {
   const pathname = usePathname()
+
+  const storagePercentage = storageQuota > 0 ? (storageUsed / storageQuota) * 100 : 0
+  const clampedPercentage = Math.min(100, Math.max(0, storagePercentage))
+  
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return "0 B"
+    const k = 1024
+    const sizes = ["B", "KB", "MB", "GB", "TB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+  }
+
+  let progressColor = "bg-green-500"
+  if (clampedPercentage >= 50 && clampedPercentage < 80) {
+    progressColor = "bg-yellow-500"
+  } else if (clampedPercentage >= 80) {
+    progressColor = "bg-red-500"
+  }
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard"
@@ -62,71 +83,106 @@ export default function Sidebar({ userRole }: SidebarProps) {
   return (
     <aside className="flex flex-col h-full w-64 bg-[var(--sidebar-bg)] text-[var(--sidebar-text)] shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-6 py-5 border-b border-white/5">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+      <div className="flex items-center gap-2.5 px-6 h-[72px] shrink-0 border-b border-border">
+        <div className="w-8 h-8 rounded-lg bg-brand-gradient flex items-center justify-center shadow-sm">
           <Vault size={16} className="text-white" />
         </div>
-        <span className="font-bold text-lg text-white tracking-tight">EmpVault</span>
+        <span className="font-extrabold text-lg tracking-tight">EmpVault</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-0.5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/30 px-3 mb-2">Main</p>
-        {navItems.map((item) => (
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 mb-2">Main</p>
+        {navItems.map((item) => {
+          const active = isActive(item.href);
+          return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
-              isActive(item.href)
-                ? "bg-primary text-white shadow-sm"
-                : "text-[var(--sidebar-text)] hover:bg-white/5 hover:text-white"
+              "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-200 group z-10",
+              active
+                ? "text-white"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
             )}
           >
+            {active && (
+              <motion.div
+                layoutId="sidebar-active-pill"
+                className="absolute inset-0 bg-brand-gradient rounded-xl shadow-md shadow-indigo-500/20 z-[-1]"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+              />
+            )}
             <span className={cn(
               "transition-colors",
-              isActive(item.href) ? "text-white" : "text-white/40 group-hover:text-white"
+              active ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-brand-gradient dark:group-hover:text-indigo-400"
             )}>
               {item.icon}
             </span>
             {item.label}
-            {isActive(item.href) && (
-              <ChevronRight size={14} className="ml-auto text-white/60" />
+            {active && (
+              <ChevronRight size={14} className="ml-auto text-white/80" />
             )}
           </Link>
-        ))}
+        )})}
 
         {/* Admin section */}
         {(userRole === "ADMIN" || userRole === "MANAGER") && (
           <>
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/30 px-3 mt-5 mb-2">Admin</p>
-            {adminNavItems.map((item) => (
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 mt-6 mb-2">Admin</p>
+            {adminNavItems.map((item) => {
+              const active = isActive(item.href);
+              return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
-                  isActive(item.href)
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-[var(--sidebar-text)] hover:bg-white/5 hover:text-white"
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-200 group z-10",
+                  active
+                    ? "text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
                 )}
               >
+                {active && (
+                  <motion.div
+                    layoutId="sidebar-active-pill"
+                    className="absolute inset-0 bg-brand-gradient rounded-xl shadow-md shadow-indigo-500/20 z-[-1]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                  />
+                )}
                 <span className={cn(
                   "transition-colors",
-                  isActive(item.href) ? "text-white" : "text-white/40 group-hover:text-white"
+                  active ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-brand-gradient dark:group-hover:text-indigo-400"
                 )}>
                   {item.icon}
                 </span>
                 {item.label}
               </Link>
-            ))}
+            )})}
           </>
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-white/5">
-        <p className="text-xs text-white/20 text-center">EmpVault v1.0</p>
+      {/* Footer / Storage */}
+      <div className="px-5 py-5 border-t border-border space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-700 dark:text-slate-300 font-bold tracking-tight">Storage</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">{formatBytes(storageUsed)} / {formatBytes(storageQuota)}</span>
+          </div>
+          <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+            <div 
+              className={cn("h-full transition-all duration-500 rounded-full", progressColor)}
+              style={{ width: `${clampedPercentage}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              {clampedPercentage.toFixed(1)}% used
+            </p>
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">EmpVault v1.0</p>
+          </div>
+        </div>
       </div>
     </aside>
   )

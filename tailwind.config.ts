@@ -58,6 +58,9 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(135deg, var(--logo-gradient) 0%, var(--logo-gradient-hover) 100%)',
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon } from "lucide-react"
+import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon, Copy, Check, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)
@@ -41,6 +43,7 @@ export function PhotoViewer({
   const [mounted, setMounted] = useState(false)
   const [isFavoriting, setIsFavoriting] = useState(false)
   const [localFavorites, setLocalFavorites] = useState<Record<string, boolean>>({})
+  const [showShareModal, setShowShareModal] = useState(false)
 
   const currentFile = files[currentIndex]
   const isFavorited = localFavorites[currentFile?.id] ?? (currentFile?.favorites && currentFile.favorites.length > 0)
@@ -81,31 +84,8 @@ export function PhotoViewer({
     }
   }
 
-  const handleShare = async () => {
-    const fileUrl = `${window.location.origin}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: currentFile.originalName,
-          text: `Check out ${currentFile.originalName} on EmpVault`,
-          url: fileUrl,
-        })
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error("Error sharing:", err)
-          toast.error("Failed to share file")
-        }
-      }
-    } else {
-      // Fallback to clipboard
-      try {
-        await navigator.clipboard.writeText(fileUrl)
-        toast.success("Link copied to clipboard!")
-      } catch (err) {
-        toast.error("Failed to copy link")
-      }
-    }
+  const handleShare = () => {
+    setShowShareModal(true)
   }
 
   useEffect(() => {
@@ -127,46 +107,41 @@ export function PhotoViewer({
   if (!currentFile || !mounted) return null
 
   const isImage = currentFile.fileType === "IMAGE"
+  const currentFileUrl = `${window.location.origin}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
 
   const content = (
-    <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md text-white flex flex-col animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md text-white flex flex-col animate-in fade-in duration-200">
       {/* Top Bar */}
       <div className="h-16 flex items-center justify-between px-4 bg-gradient-to-b from-black/50 to-transparent absolute top-0 left-0 w-full z-10 transition-opacity">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full h-10 w-10">
+          <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors">
             <ArrowLeft size={24} />
-          </Button>
+          </button>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
+          <button 
             onClick={toggleFavorite}
-            variant="ghost" 
-            size="icon" 
-            className={`rounded-full h-10 w-10 transition-colors ${isFavorited ? 'text-yellow-400 hover:bg-white/10' : 'text-white hover:bg-white/20'}`} 
+            className={`rounded-full h-10 w-10 flex items-center justify-center transition-colors ${isFavorited ? 'text-yellow-400 hover:bg-white/10' : 'text-white hover:bg-white/20'}`} 
             title={isFavorited ? "Remove from favorites" : "Add to favorites"}
           >
             <Star size={20} className={isFavorited ? "fill-yellow-400" : ""} />
-          </Button>
-          <Button onClick={handleShare} variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-10 w-10" title="Share">
+          </button>
+          <button onClick={handleShare} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Share">
             <Share2 size={20} />
-          </Button>
-          <a href={`/api/files/${currentFile.id}/download`}>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-10 w-10" title="Download">
-              <Download size={20} />
-            </Button>
+          </button>
+          <a href={`/api/files/${currentFile.id}/download`} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Download">
+            <Download size={20} />
           </a>
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-10 w-10" title="Delete">
+          <button className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Delete">
             <Trash2 size={20} />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          </button>
+          <button 
             onClick={() => setShowInfo(!showInfo)} 
-            className={`text-white rounded-full h-10 w-10 ${showInfo ? 'bg-white/20' : 'hover:bg-white/20'}`} 
+            className={`text-white rounded-full h-10 w-10 flex items-center justify-center transition-colors ${showInfo ? 'bg-white/20' : 'hover:bg-white/20'}`} 
             title="Info"
           >
             <Info size={20} />
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -276,5 +251,68 @@ export function PhotoViewer({
     </div>
   )
 
-  return createPortal(content, document.body)
+  const ShareModal = () => {
+    const [copied, setCopied] = useState(false)
+    const encodedUrl = encodeURIComponent(currentFileUrl)
+    const encodedTitle = encodeURIComponent(`Check out ${currentFile.originalName}`)
+
+    const onCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(currentFileUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        toast.success("Link copied to clipboard!")
+      } catch (err) {
+        toast.error("Failed to copy link")
+      }
+    }
+
+    return (
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="sm:max-w-md text-foreground">
+          <DialogHeader>
+            <DialogTitle>Share File</DialogTitle>
+            <DialogDescription>
+              Share this link with anyone, or post it to social media.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 mt-4">
+            <Input readOnly value={currentFileUrl} className="flex-1" />
+            <Button size="icon" onClick={onCopy}>
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="flex justify-center gap-4 mt-6">
+            <a href={`https://wa.me/?text=${encodedTitle}%20${encodedUrl}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-green-50 hover:text-green-600 border-green-200" title="WhatsApp">
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+            </a>
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-blue-50 hover:text-blue-600 border-blue-200" title="Facebook">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+              </Button>
+            </a>
+            <a href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-sky-50 hover:text-sky-500 border-sky-200" title="Twitter">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
+              </Button>
+            </a>
+            <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-blue-50 hover:text-blue-700 border-blue-200" title="LinkedIn">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+              </Button>
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <>
+      {createPortal(content, document.body)}
+      {showShareModal && <ShareModal />}
+    </>
+  )
 }
