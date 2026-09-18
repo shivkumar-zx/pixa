@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import archiver from "archiver"
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const archiver = require("archiver")
 import fs from "fs"
 import path from "path"
 import { PassThrough } from "stream"
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
 
     // Increment download count
     await prisma.file.updateMany({
-      where: { id: { in: files.map(f => f.id) } },
+      where: { id: { in: files.map((f: { id: string }) => f.id) } },
       data: { downloadCount: { increment: 1 } }
     })
 
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
       data: {
         action: "BULK_DOWNLOAD_FILES",
         userId,
-        metadata: JSON.stringify({ count: files.length, fileIds: files.map(f => f.id) })
+        metadata: JSON.stringify({ count: files.length, fileIds: files.map((f: { id: string }) => f.id) })
       }
     })
 

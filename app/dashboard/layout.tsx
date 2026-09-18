@@ -22,8 +22,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     role?: string
   }
 
-  let storageUsed = 0n
-  let storageQuota = 5368709120n // 5GB default
+  let storageUsed = BigInt(0)
+  let storageQuota = BigInt(5368709120) // 5GB default
   
   if (user.id) {
     const dbUser = await prisma.user.findUnique({

@@ -4,36 +4,58 @@ import prisma from "@/lib/prisma"
 import { HardDrive, TrendingUp, Users } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
+import { StorageConsumersClient } from "@/components/admin/storage-consumers-client"
 
 function formatBytes(bytes: bigint): string {
   const b = Number(bytes)
   if (b === 0) return "0 B"
   const k = 1024
-  const sizes = ["B", "KB", "MB", "GB"]
+  const sizes = ["B", "KB", "MB", "GB", "TB"]
   const i = Math.floor(Math.log(b) / Math.log(k))
   return `${parseFloat((b / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
 export default async function AdminStoragePage() {
   const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard")
+  if (!session?.user || (session.user as any).role !== "ADMIN") redirect("/dashboard")
 
   // Calculate global storage stats
   const users = await prisma.user.findMany({
-    select: { storageUsed: true, storageQuota: true, name: true, email: true },
+    select: {
+      id: true,
+      storageUsed: true,
+      storageQuota: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+    },
     orderBy: { storageUsed: "desc" },
-    take: 50
+    take: 50,
   })
 
   let totalUsed = BigInt(0)
   let totalQuota = BigInt(0)
 
-  users.forEach(u => {
+  users.forEach((u) => {
     totalUsed += u.storageUsed
     totalQuota += u.storageQuota
   })
 
-  const globalPercent = totalQuota > 0 ? Math.min(100, Math.round(Number(totalUsed) / Number(totalQuota) * 100)) : 0
+  const globalPercent =
+    totalQuota > 0
+      ? Math.min(100, Math.round((Number(totalUsed) / Number(totalQuota)) * 100))
+      : 0
+
+  const serializedUsers = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    storageUsed: Number(u.storageUsed),
+    storageQuota: Number(u.storageQuota),
+    isActive: u.isActive,
+  }))
 
   return (
     <div className="space-y-6">
@@ -42,7 +64,9 @@ export default async function AdminStoragePage() {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <HardDrive size={22} className="text-primary" /> System Storage
           </h1>
-          <p className="text-muted-foreground text-sm">Monitor overall system storage and quotas</p>
+          <p className="text-muted-foreground text-sm">
+            Monitor overall system storage, view allocations, and adjust user quotas.
+          </p>
         </div>
       </div>
 
@@ -60,7 +84,7 @@ export default async function AdminStoragePage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -95,46 +119,17 @@ export default async function AdminStoragePage() {
         <CardContent className="p-6">
           <h3 className="text-lg font-bold mb-2">Global Usage Allocation</h3>
           <Progress value={globalPercent} className="h-4 w-full mb-2" />
-          <p className="text-sm text-muted-foreground">{globalPercent}% of allocated quota used ({formatBytes(totalUsed)} / {formatBytes(totalQuota)})</p>
+          <p className="text-sm text-muted-foreground">
+            {globalPercent}% of allocated quota used ({formatBytes(totalUsed)} / {formatBytes(totalQuota)})
+          </p>
         </CardContent>
       </Card>
 
-      {/* Top Consumers Table */}
-      <Card>
-        <CardContent className="p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Storage Used</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quota</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Usage %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {users.map((user, idx) => {
-                const percent = Math.min(100, Math.round(Number(user.storageUsed) / Number(user.storageQuota) * 100))
-                return (
-                  <tr key={idx} className="hover:bg-accent/40 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </td>
-                    <td className="px-6 py-4">{formatBytes(user.storageUsed)}</td>
-                    <td className="px-6 py-4">{formatBytes(user.storageQuota)}</td>
-                    <td className="px-6 py-4 w-64">
-                      <div className="flex items-center gap-3">
-                        <Progress value={percent} className="h-2 flex-1" />
-                        <span className="text-xs text-muted-foreground w-8">{percent}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      {/* Interactive Top Consumers Table */}
+      <div>
+        <h3 className="text-base font-semibold mb-3">User Allocations & Consumption</h3>
+        <StorageConsumersClient initialUsers={serializedUsers} />
+      </div>
     </div>
   )
 }
