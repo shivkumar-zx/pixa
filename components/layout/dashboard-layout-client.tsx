@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import Sidebar from "./sidebar"
-import Topbar from "./Topbar"
+import { usePathname } from "next/navigation"
+import { Sidebar } from "./Sidebar"
+import { Topbar } from "./Topbar"
 import { Toaster } from "sonner"
 import { X } from "lucide-react"
 
