@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma"
 import { userUpdateSchema } from "@/lib/validations/user"
 import { z } from "zod"
 
+export const dynamic = 'force-dynamic'
+
 const adminUserUpdateSchema = userUpdateSchema.extend({
   quotaDelta: z.number().optional(), // allow relative adjustment in bytes (+ or -)
   allowBelowUsed: z.boolean().optional(), // whether admin explicitly confirmed reducing below used
