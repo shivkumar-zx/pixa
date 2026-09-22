@@ -19,7 +19,6 @@ export default async function AdminUsersPage() {
     name: u.name,
     email: u.email,
     role: u.role,
-    department: u.department,
     storageUsed: Number(u.storageUsed),
     storageQuota: Number(u.storageQuota),
     fileCount: u._count.files,

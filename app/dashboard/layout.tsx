@@ -1,11 +1,7 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Sidebar from "@/components/layout/Sidebar"
-import Topbar from "@/components/layout/Topbar"
-import { Toaster } from "sonner"
-import { Suspense } from "react"
-
 import prisma from "@/lib/prisma"
+import { DashboardLayoutClient } from "@/components/layout/dashboard-layout-client"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -24,11 +20,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let storageUsed = BigInt(0)
   let storageQuota = BigInt(5368709120) // 5GB default
-  
+
   if (user.id) {
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { storageUsed: true, storageQuota: true }
+      select: { storageUsed: true, storageQuota: true },
     })
     if (dbUser) {
       storageUsed = dbUser.storageUsed
@@ -37,22 +33,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar 
-        userRole={user.role} 
-        storageUsed={Number(storageUsed)} 
-        storageQuota={Number(storageQuota)} 
-      />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Suspense fallback={<div className="h-[72px] border-b border-border bg-card shrink-0" />}>
-          <Topbar user={user} />
-        </Suspense>
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
-      </div>
-      <Toaster richColors position="top-right" />
-    </div>
+    <DashboardLayoutClient
+      user={user}
+      storageUsed={Number(storageUsed)}
+      storageQuota={Number(storageQuota)}
+    >
+      {children}
+    </DashboardLayoutClient>
   )
 }
+
 

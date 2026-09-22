@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 
-// GET all categories for current user + system ones
+// GET /api/categories - Fetch user folders
 export async function GET() {
   try {
     const session = await auth()
@@ -11,11 +11,11 @@ export async function GET() {
     const userId = session.user.id
     const role = (session.user as any).role
 
-    // Admins/Managers see all categories; employees see their own + active system ones
-    const categories = await prisma.category.findMany({
+    // Fetch user-created folders (or all folders if ADMIN/MANAGER)
+    const folders = await prisma.category.findMany({
       where: role === "ADMIN" || role === "MANAGER"
-        ? {}
-        : { OR: [{ createdById: userId }, { isActive: true }] },
+        ? { isActive: true }
+        : { createdById: userId, isActive: true },
       include: {
         createdBy: { select: { name: true } },
         _count: { select: { files: true } },
@@ -23,13 +23,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    return NextResponse.json(categories)
+    return NextResponse.json(folders)
   } catch (error: any) {
+    console.error("Fetch folders error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
-// POST create a new category/folder
+// POST /api/categories - Create new user folder
 export async function POST(req: Request) {
   try {
     const session = await auth()
@@ -43,32 +44,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Folder name is required" }, { status: 400 })
     }
 
-    const slug = name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+    const cleanName = name.trim()
+    const slug = `${cleanName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}-${Date.now().toString(36)}`
 
-    // Check for duplicate slug
-    const existing = await prisma.category.findFirst({ where: { slug } })
-    if (existing) {
-      return NextResponse.json({ error: "A folder with that name already exists" }, { status: 409 })
-    }
-
-    const category = await prisma.category.create({
+    const folder = await prisma.category.create({
       data: {
-        name: name.trim(),
+        name: cleanName,
         description: description?.trim() || null,
         slug,
         createdById: userId,
         isActive: true,
         allowedRoles: JSON.stringify([]),
       },
+      include: {
+        createdBy: { select: { name: true } },
+        _count: { select: { files: true } },
+      },
     })
 
-    return NextResponse.json(category, { status: 201 })
+    return NextResponse.json(folder, { status: 201 })
   } catch (error: any) {
+    console.error("Create folder error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
-// DELETE a category
+// DELETE /api/categories - Delete a user folder
 export async function DELETE(req: Request) {
   try {
     const session = await auth()
@@ -79,19 +80,20 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
-    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+    if (!id) return NextResponse.json({ error: "Missing folder id" }, { status: 400 })
 
-    const category = await prisma.category.findUnique({ where: { id } })
-    if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    const folder = await prisma.category.findUnique({ where: { id } })
+    if (!folder) return NextResponse.json({ error: "Folder not found" }, { status: 404 })
 
-    // Only creator or admin can delete
-    if (category.createdById !== userId && role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    // Only folder owner or Admin can delete
+    if (folder.createdById !== userId && role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden: You can only delete folders created by you." }, { status: 403 })
     }
 
     await prisma.category.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: "Folder deleted" })
   } catch (error: any) {
+    console.error("Delete folder error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

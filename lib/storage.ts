@@ -2,9 +2,9 @@ import fs from "fs"
 import path from "path"
 
 export function getBucketForMimeType(mimeType: string): string {
-  if (mimeType.startsWith("image/")) return "empvault-images"
-  if (mimeType.startsWith("video/")) return "empvault-videos"
-  return "empvault-documents"
+  if (mimeType.startsWith("image/")) return "pixbox-images"
+  if (mimeType.startsWith("video/")) return "pixbox-videos"
+  return "pixbox-documents"
 }
 
 export function generateStoragePath(userId: string, storedName: string): string {
@@ -12,8 +12,8 @@ export function generateStoragePath(userId: string, storedName: string): string 
 }
 
 export async function getSignedUploadUrl(bucket: string, storagePath: string, expiresIn = 300, contentType?: string): Promise<string> {
-  // Return a URL to our local API route that will handle the PUT request
-  return `http://localhost:3000/api/local-storage/upload?bucket=${bucket}&path=${encodeURIComponent(storagePath)}`
+  // Return a relative URL to our local API route that will handle the PUT request
+  return `/api/local-storage/upload?bucket=${bucket}&path=${encodeURIComponent(storagePath)}`
 }
 
 export async function getSignedDownloadUrl(bucket: string, storagePath: string, expiresIn = 900): Promise<string> {

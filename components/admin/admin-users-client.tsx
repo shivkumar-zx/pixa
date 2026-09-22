@@ -2,11 +2,21 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { Shield, HardDrive, Search, Filter, Sliders, CheckCircle2, XCircle } from "lucide-react"
+import { Shield, HardDrive, Search, Filter, Sliders, CheckCircle2, XCircle, Trash2, AlertTriangle, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 import { CreateUserModal } from "./create-user-modal"
 import { EditQuotaModal, AdminUserItem } from "./edit-quota-modal"
 
@@ -26,7 +36,7 @@ const roleVariant: Record<string, "default" | "success" | "warning" | "info" | "
   ADMIN: "default",
   MANAGER: "warning",
   EMPLOYEE: "success",
-  VIEWER: "secondary",
+  FAMILY: "secondary",
 }
 
 export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
@@ -35,6 +45,8 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
   const [roleFilter, setRoleFilter] = useState("ALL")
   const [selectedUserForQuota, setSelectedUserForQuota] = useState<AdminUserItem | null>(null)
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)
+  const [deletingUser, setDeletingUser] = useState<AdminUserItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const refreshUsers = async () => {
     try {
@@ -61,11 +73,31 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
     setIsQuotaModalOpen(true)
   }
 
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/users/${deletingUser.id}`, {
+        method: "DELETE",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete user")
+      }
+      toast.success(`User "${deletingUser.name}" deleted successfully`)
+      setDeletingUser(null)
+      refreshUsers()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.department && u.department.toLowerCase().includes(search.toLowerCase()))
+      u.email.toLowerCase().includes(search.toLowerCase())
     const matchesRole = roleFilter === "ALL" || u.role === roleFilter
     return matchesSearch && matchesRole
   })
@@ -79,7 +111,7 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
             <Shield size={22} className="text-primary" /> User Management
           </h1>
           <p className="text-muted-foreground text-sm">
-            Manage employee access, assign roles, and allocate storage quotas.
+            Manage employee & family access, assign roles, and allocate storage quotas.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -92,7 +124,7 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
         <div className="relative w-full sm:w-80">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, department..."
+            placeholder="Search by name, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9"
@@ -112,7 +144,7 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
             <option value="ADMIN">Admin</option>
             <option value="MANAGER">Manager</option>
             <option value="EMPLOYEE">Employee</option>
-            <option value="VIEWER">Viewer</option>
+            <option value="FAMILY">Family</option>
           </select>
           <span className="text-xs text-muted-foreground font-mono ml-2">
             {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
@@ -128,7 +160,6 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
               <tr className="border-b border-border bg-muted/40 text-left">
                 <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
                 <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Role</th>
-                <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Department</th>
                 <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-48">Allocated Storage</th>
                 <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Files</th>
                 <th className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
@@ -138,7 +169,7 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
             <tbody className="divide-y divide-border">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">
                     No users found matching your criteria.
                   </td>
                 </tr>
@@ -170,7 +201,6 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
                       <td className="px-4 py-3">
                         <Badge variant={roleVariant[user.role] ?? "secondary"}>{user.role}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{user.department ?? "—"}</td>
                       <td className="px-4 py-3">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[11px]">
@@ -197,15 +227,26 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenQuotaModal(user)}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all shadow-2xs"
-                          title="Increase or decrease storage quota"
-                        >
-                          <Sliders size={13} className="text-primary" />
-                          <span>Edit Quota</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuotaModal(user)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all shadow-2xs"
+                            title="Increase or decrease storage quota"
+                          >
+                            <Sliders size={13} className="text-primary" />
+                            <span>Edit Quota</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingUser(user)}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all shadow-2xs cursor-pointer"
+                            title={`Delete user account ${user.name}`}
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -223,6 +264,68 @@ export function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
         onOpenChange={setIsQuotaModalOpen}
         onQuotaUpdated={handleQuotaUpdated}
       />
+
+      {/* Delete User Confirmation Modal */}
+      <Dialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+        <DialogContent className="sm:max-w-md border-destructive">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-destructive">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle size={22} className="text-destructive" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-destructive">
+                  Confirm User Deletion
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  This action is permanent and only Admins can perform it.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {deletingUser && (
+            <div className="space-y-3 py-2 text-sm">
+              <div className="p-3 bg-muted/50 border border-border rounded-lg text-xs space-y-1">
+                <p className="font-semibold text-foreground">{deletingUser.name}</p>
+                <p className="text-muted-foreground">{deletingUser.email}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Role: <span className="font-medium text-foreground">{deletingUser.role}</span></p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Are you sure you want to delete <strong>{deletingUser.name}</strong>? All associated files, activity logs, and account access will be removed.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeletingUser(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} /> Delete User
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

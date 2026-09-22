@@ -1,7 +1,7 @@
 "use client"
 
 import { signOut } from "next-auth/react"
-import { Bell, Search, LogOut, Settings, User, Moon, Sun, Upload } from "lucide-react"
+import { Bell, Search, LogOut, Settings, User, Moon, Sun, Upload, Menu } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,9 +23,10 @@ interface TopbarProps {
     image?: string | null
     role?: string
   }
+  onOpenMobileMenu?: () => void
 }
 
-export default function Topbar({ user }: TopbarProps) {
+export default function Topbar({ user, onOpenMobileMenu }: TopbarProps) {
   const [isDark, setIsDark] = useState(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -40,7 +41,6 @@ export default function Topbar({ user }: TopbarProps) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Only apply search automatically if on files page
       if (pathname.startsWith("/dashboard/files")) {
         const params = new URLSearchParams(searchParams.toString())
         if (search) {
@@ -81,22 +81,36 @@ export default function Topbar({ user }: TopbarProps) {
     .slice(0, 2) || "?"
 
   return (
-    <header className="h-[72px] border-b border-border bg-[var(--sidebar-bg)] flex items-center justify-between px-4 sm:px-6 shrink-0 gap-4">
-      <div className="flex-1 hidden sm:block"></div>
+    <header className="h-[72px] border-b border-border bg-[var(--sidebar-bg)] flex items-center justify-between px-3 sm:px-6 shrink-0 gap-2 sm:gap-4">
+      {/* Mobile Hamburger Menu (visible on screens <= 1024px) */}
+      <div className="flex items-center gap-2 lg:hidden">
+        {onOpenMobileMenu && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenMobileMenu}
+            className="rounded-xl text-foreground hover:bg-muted"
+            title="Toggle Menu"
+          >
+            <Menu size={22} />
+          </Button>
+        )}
+      </div>
 
       {/* Search bar */}
-      <div className="flex-[2] flex justify-center max-w-2xl">
-        <div className="flex items-center gap-3 bg-transparent border border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 focus-within:shadow-sm rounded-full px-4 py-2 w-full max-w-[480px] text-sm text-foreground transition-all duration-300 ease-out">
-          <Search size={18} className="shrink-0 text-slate-400 dark:text-slate-500" />
+      <div className="flex-1 flex justify-center max-w-xl">
+        <div className="flex items-center gap-2 sm:gap-3 bg-card border border-border hover:border-slate-300 dark:hover:border-slate-700 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 rounded-full px-3.5 py-1.5 sm:py-2 w-full text-xs sm:text-sm text-foreground transition-all">
+          <Search size={16} className="shrink-0 text-muted-foreground" />
           <input 
             type="text" 
-            placeholder="Search your files"
-            className="bg-transparent border-none outline-none w-full placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-900 dark:text-slate-100 transition-all duration-300"
+            placeholder="Search your files..."
+            className="bg-transparent border-none outline-none w-full placeholder:text-muted-foreground font-medium text-foreground text-xs sm:text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
+
 
       {/* Actions */}
       <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2">
@@ -143,21 +157,21 @@ export default function Topbar({ user }: TopbarProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings/profile" className="cursor-pointer">
-                <User size={14} className="mr-2" /> Profile
+              <Link href="/dashboard/settings/profile" className="flex items-center w-full cursor-pointer">
+                <User size={14} className="mr-2 shrink-0" /> Profile
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings" className="cursor-pointer">
-                <Settings size={14} className="mr-2" /> Settings
+              <Link href="/dashboard/settings" className="flex items-center w-full cursor-pointer">
+                <Settings size={14} className="mr-2 shrink-0" /> Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive cursor-pointer"
+              className="text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/40 cursor-pointer font-medium"
               onClick={() => signOut({ callbackUrl: "/login" })}
             >
-              <LogOut size={14} className="mr-2" /> Sign Out
+              <LogOut size={14} className="mr-2 shrink-0 text-red-500" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

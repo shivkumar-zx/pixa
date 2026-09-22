@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
-import { Files, FileText, ImageIcon, Video, FileArchive, Download, Trash2, Share2 } from "lucide-react"
+import { Files, FileText, ImageIcon, Video, FileArchive, Download, Trash2, Share2, Upload } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -198,10 +198,21 @@ export default async function FilesPage({
 
       {/* Files List/Grid */}
       {files.length === 0 ? (
-        <div className="text-center py-20 bg-transparent">
-          <Files size={48} className="mx-auto mb-4 text-muted-foreground/30" />
-          <h3 className="font-semibold text-lg">No files found</h3>
-          <p className="text-muted-foreground text-sm mt-1">Try adjusting your filters or upload a new file.</p>
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-transparent">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center mb-4 text-slate-400 dark:text-slate-500 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+            <Files size={32} />
+          </div>
+          <h3 className="font-semibold text-lg tracking-tight">No files found</h3>
+          <p className="text-muted-foreground text-sm mt-1 max-w-sm">
+            Try adjusting your filters or upload a new file to get started.
+          </p>
+          <Link
+            href="/dashboard/upload"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-gradient hover:opacity-95 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Upload size={16} />
+            Upload File
+          </Link>
         </div>
       ) : viewMode === "list" ? (
         <FileTable files={files} />

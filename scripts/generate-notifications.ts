@@ -14,7 +14,7 @@ async function main() {
     data: [
       {
         userId: user.id,
-        title: "Welcome to EmpVault!",
+        title: "Welcome to PixBox!",
         message: "Your premium dashboard is ready. Start by uploading some files.",
         type: "SYSTEM",
         isRead: false,

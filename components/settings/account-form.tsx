@@ -1,71 +1,123 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
-import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { User, Mail, Shield, HardDrive, Edit3 } from "lucide-react"
 
 export function AccountForm() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState<{
+    email: string
+    username: string
+    name: string
+    role: string
+    storageUsed: number
+    storageQuota: number
+  } | null>(null)
 
-  // Example data that would normally come from the user session/database
-  const user = {
-    email: "user@example.com",
-    role: "EMPLOYEE",
-    storageUsed: 1073741824, // 1GB
-    storageQuota: 5368709120, // 5GB
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/user/profile")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.user) {
+            setUser(data.user)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user account details:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchUser()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-8 shadow-sm text-center text-sm text-muted-foreground">
+        Loading account details...
+      </div>
+    )
   }
-  
-  const storagePercentage = (user.storageUsed / user.storageQuota) * 100
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success("Account updated", {
-        description: "Your account settings have been updated.",
-      })
-    }, 1000)
-  }
+  const storageUsed = user?.storageUsed || 0
+  const storageQuota = user?.storageQuota || 5368709120
+  const storagePercentage = storageQuota > 0 ? (storageUsed / storageQuota) * 100 : 0
 
   return (
-    <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-8 shadow-sm">
-      <form onSubmit={onSubmit} className="space-y-8">
-        <div className="space-y-5">
-          <div className="grid gap-2">
-            <Label htmlFor="email" className="text-slate-600 dark:text-slate-400 font-medium">Email</Label>
-            <Input id="email" type="email" defaultValue={user.email} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 max-w-md opacity-70" />
-            <p className="text-[13px] text-muted-foreground mt-1">
-              Your email address is managed by your administrator.
-            </p>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="role" className="text-slate-600 dark:text-slate-400 font-medium">Role</Label>
-            <Input id="role" defaultValue={user.role} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 max-w-md opacity-70" />
-          </div>
-          
-          <div className="space-y-3 pt-6 border-t border-slate-200/60 dark:border-slate-800/60 max-w-md">
-            <div className="flex justify-between items-center text-sm font-medium">
-              <span className="text-slate-700 dark:text-slate-300 font-bold">Storage Usage</span>
-              <span className="text-indigo-600 dark:text-indigo-400">{storagePercentage.toFixed(1)}%</span>
-            </div>
-            <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-              <div 
-                className="h-full bg-brand-gradient rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                style={{ width: `${storagePercentage}%` }}
-              />
-            </div>
-            <p className="text-[13px] text-slate-500 dark:text-slate-400">
-              You have used <strong className="text-slate-700 dark:text-slate-300">{(user.storageUsed / (1024*1024*1024)).toFixed(2)} GB</strong> of your {(user.storageQuota / (1024*1024*1024)).toFixed(2)} GB quota.
-            </p>
-          </div>
+    <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-8 shadow-sm space-y-8">
+      <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-5">
+        <div>
+          <h3 className="text-lg font-bold text-foreground tracking-tight">Account Information</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Overview of your account credentials and system limits.</p>
         </div>
-      </form>
+        <Link
+          href="/dashboard/settings/profile"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-gradient text-white text-xs font-semibold shadow-md shadow-indigo-500/20 hover:opacity-90 transition-all"
+        >
+          <Edit3 size={14} />
+          Edit Profile & Password
+        </Link>
+      </div>
+
+      <div className="space-y-5 max-w-md">
+        {/* Full Name */}
+        <div className="grid gap-2">
+          <Label className="text-slate-600 dark:text-slate-400 font-medium text-xs flex items-center gap-1.5">
+            <User size={14} /> Full Name
+          </Label>
+          <Input value={user?.name || ""} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-medium" />
+        </div>
+
+        {/* Username */}
+        <div className="grid gap-2">
+          <Label className="text-slate-600 dark:text-slate-400 font-medium text-xs flex items-center gap-1.5">
+            <User size={14} /> Username
+          </Label>
+          <Input value={user?.username || "Not set"} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-medium" />
+        </div>
+
+        {/* Email */}
+        <div className="grid gap-2">
+          <Label className="text-slate-600 dark:text-slate-400 font-medium text-xs flex items-center gap-1.5">
+            <Mail size={14} /> Email Address
+          </Label>
+          <Input value={user?.email || ""} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-medium" />
+        </div>
+
+        {/* Role */}
+        <div className="grid gap-2">
+          <Label className="text-slate-600 dark:text-slate-400 font-medium text-xs flex items-center gap-1.5">
+            <Shield size={14} /> Access Role
+          </Label>
+          <Input value={user?.role || "EMPLOYEE"} disabled className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-bold uppercase" />
+        </div>
+
+        {/* Storage Bar */}
+        <div className="space-y-3 pt-6 border-t border-slate-200/60 dark:border-slate-800/60">
+          <div className="flex justify-between items-center text-sm font-medium">
+            <span className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
+              <HardDrive size={14} /> Storage Usage
+            </span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-bold">{storagePercentage.toFixed(1)}%</span>
+          </div>
+          <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+            <div 
+              className="h-full bg-brand-gradient rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+              style={{ width: `${storagePercentage}%` }}
+            />
+          </div>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400">
+            Used <strong className="text-slate-700 dark:text-slate-300">{(storageUsed / (1024 * 1024 * 1024)).toFixed(2)} GB</strong> of {(storageQuota / (1024 * 1024 * 1024)).toFixed(2)} GB total quota.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

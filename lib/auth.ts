@@ -18,9 +18,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+        const rawInput = (credentials.email as string).trim()
+        const identifier = rawInput.toLowerCase()
+        const strippedIdentifier = identifier.replace(/\s+/g, "")
+
+        let user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: identifier },
+              { username: identifier },
+              { username: strippedIdentifier },
+              { name: rawInput },
+            ]
+          },
         })
+
+        if (!user) {
+          const allUsers = await prisma.user.findMany()
+          user = allUsers.find((u) => {
+            const normName = u.name.toLowerCase().replace(/\s+/g, "")
+            const normUser = u.username ? u.username.toLowerCase().replace(/\s+/g, "") : ""
+            return (
+              (normName && normName === strippedIdentifier) ||
+              (normUser && normUser === strippedIdentifier) ||
+              (normName && normName.includes(strippedIdentifier)) ||
+              (normUser && normUser.includes(strippedIdentifier)) ||
+              (normName && strippedIdentifier.includes(normName))
+            )
+          }) || null
+        }
 
         if (!user || !user.isActive) {
           return null

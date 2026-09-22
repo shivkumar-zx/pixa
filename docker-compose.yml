@@ -3,20 +3,20 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: empvault-postgres
+    container_name: pixbox-postgres
     ports:
       - '5432:5432'
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: empvault
+      POSTGRES_DB: pixbox
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   minio:
     image: minio/minio
-    container_name: empvault-minio
+    container_name: pixbox-minio
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -30,14 +30,14 @@ services:
 
   minio-init:
     image: minio/mc
-    container_name: empvault-minio-init
+    container_name: pixbox-minio-init
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set empvault http://minio:9000 minioadmin minioadmin &&
-      /usr/bin/mc mb empvault/empvault-files || true &&
-      /usr/bin/mc anonymous set download empvault/empvault-files || true
+      /usr/bin/mc alias set pixbox http://minio:9000 minioadmin minioadmin &&
+      /usr/bin/mc mb pixbox/pixbox-files || true &&
+      /usr/bin/mc anonymous set download pixbox/pixbox-files || true
       "
 
 volumes:

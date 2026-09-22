@@ -37,9 +37,9 @@ export function CreateUserModal({ onUserCreated }: CreateUserModalProps) {
   // Form State
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | "VIEWER">("EMPLOYEE")
-  const [department, setDepartment] = useState("")
+  const [role, setRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | "FAMILY">("EMPLOYEE")
 
   // Storage Allocation State
   const [quotaUnit, setQuotaUnit] = useState<"GB" | "MB">("GB")
@@ -63,9 +63,9 @@ export function CreateUserModal({ onUserCreated }: CreateUserModalProps) {
   const resetForm = () => {
     setName("")
     setEmail("")
+    setUsername("")
     setPassword("")
     setRole("EMPLOYEE")
-    setDepartment("")
     setQuotaUnit("GB")
     setQuotaValue(5)
   }
@@ -97,9 +97,9 @@ export function CreateUserModal({ onUserCreated }: CreateUserModalProps) {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim().toLowerCase(),
+          username: username.trim() ? username.trim().toLowerCase() : undefined,
           password: password.trim() || undefined,
           role,
-          department: department.trim() || undefined,
           storageQuota: calculatedBytes,
         }),
       })
@@ -156,7 +156,7 @@ export function CreateUserModal({ onUserCreated }: CreateUserModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          {/* Name & Email */}
+          {/* Name & Username & Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="create-name" className="text-xs font-semibold">
@@ -171,49 +171,53 @@ export function CreateUserModal({ onUserCreated }: CreateUserModalProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-email" className="text-xs font-semibold">
-                Email Address <span className="text-destructive">*</span>
+              <Label htmlFor="create-username" className="text-xs font-semibold">
+                Username <span className="text-xs text-muted-foreground font-normal">(Optional for Login)</span>
               </Label>
               <Input
-                id="create-email"
-                type="email"
-                placeholder="john@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                id="create-username"
+                placeholder="e.g. johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
+              {username.trim() && (
+                <p className="text-[11px] text-primary font-medium">
+                  Login Username: <span className="font-mono font-semibold">{username.trim().toLowerCase().replace(/\s+/g, "")}</span>
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Role & Department */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="create-role" className="text-xs font-semibold">
-                Role
-              </Label>
-              <select
-                id="create-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="EMPLOYEE">Employee</option>
-                <option value="MANAGER">Manager</option>
-                <option value="ADMIN">Admin</option>
-                <option value="VIEWER">Viewer</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="create-department" className="text-xs font-semibold">
-                Department
-              </Label>
-              <Input
-                id="create-department"
-                placeholder="e.g. Engineering, Sales"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-email" className="text-xs font-semibold">
+              Email Address <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="create-email"
+              type="email"
+              placeholder="john@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Role */}
+          <div className="space-y-1.5">
+            <Label htmlFor="create-role" className="text-xs font-semibold">
+              Role
+            </Label>
+            <select
+              id="create-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as any)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="EMPLOYEE">Employee</option>
+              <option value="MANAGER">Manager</option>
+              <option value="ADMIN">Admin</option>
+              <option value="FAMILY">Family</option>
+            </select>
           </div>
 
           {/* Optional Initial Password */}

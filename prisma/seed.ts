@@ -12,17 +12,17 @@ async function main() {
     where: { email: 'admin@company.com' },
     create: {
       email: 'admin@company.com',
+      username: 'admin',
       name: 'System Admin',
       password: adminPassword,
       role: 'ADMIN',
-      department: 'IT',
       storageUsed: 0,
       isActive: true,
     },
     update: {
+      username: 'admin',
       password: adminPassword,
       role: 'ADMIN',
-      department: 'IT',
       isActive: true,
     },
   })
@@ -33,17 +33,17 @@ async function main() {
     where: { email: 'manager@example.com' },
     create: {
       email: 'manager@example.com',
+      username: 'manager',
       name: 'Manager User',
       password: managerPassword,
       role: 'MANAGER',
-      department: 'Operations',
       storageUsed: 0,
       isActive: true,
     },
     update: {
+      username: 'manager',
       password: managerPassword,
       role: 'MANAGER',
-      department: 'Operations',
       isActive: true,
     },
   })
@@ -53,17 +53,17 @@ async function main() {
     where: { email: 'employee@example.com' },
     create: {
       email: 'employee@example.com',
+      username: 'employee',
       name: 'Employee User',
       password: employeePassword,
       role: 'EMPLOYEE',
-      department: 'Sales',
       storageUsed: 0,
       isActive: true,
     },
     update: {
+      username: 'employee',
       password: employeePassword,
       role: 'EMPLOYEE',
-      department: 'Sales',
       isActive: true,
     },
   })

@@ -30,9 +30,9 @@ export async function GET() {
     const serializedUsers = users.map((u) => ({
       id: u.id,
       email: u.email,
+      username: u.username,
       name: u.name,
       role: u.role,
-      department: u.department,
       avatar: u.avatar,
       isActive: u.isActive,
       storageUsed: Number(u.storageUsed),
@@ -72,14 +72,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { email, name, role, department, password, storageQuota } = parsed.data
+    const { email, username, name, role, password, storageQuota } = parsed.data
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    const cleanUsername = username && username.trim() ? username.trim().toLowerCase() : null
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email.toLowerCase() },
+          ...(cleanUsername ? [{ username: cleanUsername }] : [])
+        ]
+      },
     })
 
     if (existingUser) {
-      return NextResponse.json({ error: "User with this email already exists" }, { status: 409 })
+      return NextResponse.json({ error: "User with this email or username already exists" }, { status: 409 })
     }
 
     const rawPassword = password && password.trim() ? password.trim() : "Welcome@123"
@@ -91,9 +98,9 @@ export async function POST(req: Request) {
     const newUser = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
+        username: cleanUsername,
         name,
         role: role ?? "EMPLOYEE",
-        department: department || null,
         password: hashedPassword,
         storageQuota: quotaInBytes,
         storageUsed: BigInt(0),
@@ -109,9 +116,9 @@ export async function POST(req: Request) {
       user: {
         id: newUser.id,
         email: newUser.email,
+        username: newUser.username,
         name: newUser.name,
         role: newUser.role,
-        department: newUser.department,
         isActive: newUser.isActive,
         storageUsed: Number(newUser.storageUsed),
         storageQuota: Number(newUser.storageQuota),

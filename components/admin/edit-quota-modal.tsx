@@ -30,7 +30,6 @@ export interface AdminUserItem {
   name: string
   email: string
   role: string
-  department?: string | null
   storageUsed: number
   storageQuota: number
   fileCount?: number

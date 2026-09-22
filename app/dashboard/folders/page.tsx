@@ -30,10 +30,20 @@ export default function FoldersPage() {
 
   const fetchCategories = async () => {
     setLoading(true)
-    const res = await fetch("/api/categories")
-    const data = await res.json()
-    setCategories(Array.isArray(data) ? data : [])
-    setLoading(false)
+    try {
+      const res = await fetch("/api/categories")
+      if (res.ok) {
+        const data = await res.json()
+        setCategories(Array.isArray(data) ? data : [])
+      } else {
+        setCategories([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch folders:", err)
+      setCategories([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchCategories() }, [])

@@ -52,7 +52,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { name, role, department, isActive, storageQuota, quotaDelta, allowBelowUsed } = parsed.data
+    const { name, role, isActive, storageQuota, quotaDelta, allowBelowUsed } = parsed.data
 
     let newQuota = targetUser.storageQuota
 
@@ -90,7 +90,6 @@ export async function PATCH(
       data: {
         ...(name !== undefined && { name }),
         ...(role !== undefined && { role }),
-        ...(department !== undefined && { department }),
         ...(isActive !== undefined && { isActive }),
         storageQuota: newQuota,
       },
@@ -106,7 +105,6 @@ export async function PATCH(
         email: updatedUser.email,
         name: updatedUser.name,
         role: updatedUser.role,
-        department: updatedUser.department,
         isActive: updatedUser.isActive,
         storageUsed: Number(updatedUser.storageUsed),
         storageQuota: Number(updatedUser.storageQuota),

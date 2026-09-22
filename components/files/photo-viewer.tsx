@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon, Copy, Check, MessageCircle } from "lucide-react"
+import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon, Copy, Check, MessageCircle, ExternalLink, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
@@ -88,6 +88,24 @@ export function PhotoViewer({
     setShowShareModal(true)
   }
 
+  const handleDelete = async () => {
+    if (!currentFile) return
+    if (!window.confirm(`Are you sure you want to move "${currentFile.originalName}" to trash?`)) return
+    try {
+      const res = await fetch(`/api/files/${currentFile.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete file")
+      toast.success("File moved to trash")
+      router.refresh()
+      if (files.length <= 1) {
+        onClose()
+      } else if (currentIndex >= files.length - 1) {
+        setCurrentIndex(prev => Math.max(0, prev - 1))
+      }
+    } catch (err) {
+      toast.error("Failed to delete file")
+    }
+  }
+
   useEffect(() => {
     setMounted(true)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -106,13 +124,25 @@ export function PhotoViewer({
 
   if (!currentFile || !mounted) return null
 
-  const isImage = currentFile.fileType === "IMAGE"
-  const currentFileUrl = `${window.location.origin}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
+  const fileUrl = currentFile.url || `/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
+  const fileName = currentFile.originalName || ""
+  const isImage = currentFile.fileType === "IMAGE" || currentFile.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(fileName)
+  const isPdf = 
+    currentFile.mimeType === "application/pdf" || 
+    fileName.toLowerCase().endsWith(".pdf") ||
+    (currentFile.storagePath || "").toLowerCase().endsWith(".pdf")
+  const isVideo = 
+    currentFile.fileType === "VIDEO" || 
+    currentFile.mimeType?.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov|mkv)$/i.test(fileName)
+  const isAudio = 
+    currentFile.mimeType?.startsWith("audio/") ||
+    /\.(mp3|wav|ogg|aac|flac|m4a)$/i.test(fileName)
 
   const content = (
     <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md text-white flex flex-col animate-in fade-in duration-200">
       {/* Top Bar */}
-      <div className="h-16 flex items-center justify-between px-4 bg-gradient-to-b from-black/50 to-transparent absolute top-0 left-0 w-full z-10 transition-opacity">
+      <div className="h-16 flex items-center justify-between px-4 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 w-full z-30 transition-opacity">
         <div className="flex items-center gap-4">
           <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors">
             <ArrowLeft size={24} />
@@ -132,7 +162,7 @@ export function PhotoViewer({
           <a href={`/api/files/${currentFile.id}/download`} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Download">
             <Download size={20} />
           </a>
-          <button className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Delete">
+          <button onClick={handleDelete} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Delete">
             <Trash2 size={20} />
           </button>
           <button 
@@ -146,12 +176,13 @@ export function PhotoViewer({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 pt-16 overflow-hidden relative">
         {/* Navigation Arrows */}
         {currentIndex > 0 && (
           <button 
             onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/50 text-white transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-sm shadow-xl"
+            title="Previous file"
           >
             <ChevronLeft size={32} />
           </button>
@@ -160,27 +191,189 @@ export function PhotoViewer({
         {currentIndex < files.length - 1 && (
           <button 
             onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/50 text-white transition-colors"
-            style={{ right: showInfo ? '340px' : '16px' }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white transition-colors backdrop-blur-sm shadow-xl"
+            style={{ right: showInfo ? '336px' : '16px' }}
+            title="Next file"
           >
             <ChevronRight size={32} />
           </button>
         )}
 
         {/* Media Viewer */}
-        <div className={`flex-1 flex items-center justify-center p-8 transition-all duration-300 ${showInfo ? 'mr-[320px]' : 'mr-0'}`}>
+        <div className={`flex-1 flex items-center justify-center min-h-0 min-w-0 transition-all duration-300 ${showInfo ? 'mr-[320px]' : 'mr-0'}`}>
           {isImage ? (
-            <img 
-              key={currentFile.id}
-              src={`/uploads/${currentFile.bucketName}/${currentFile.storagePath}`}
-              alt={currentFile.originalName}
-              className="max-w-full max-h-full object-contain animate-in zoom-in-95 duration-200"
-            />
+            <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
+              <img 
+                key={currentFile.id}
+                src={fileUrl}
+                alt={currentFile.originalName}
+                className="max-w-full max-h-full object-contain animate-in zoom-in-95 duration-200 select-none shadow-2xl rounded-lg"
+              />
+            </div>
+          ) : isPdf ? (
+            <div className="w-full h-full flex flex-col p-2 sm:p-4 max-w-6xl mx-auto min-h-0 animate-in zoom-in-95 duration-200">
+              {/* PDF Header with details & actions */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/90 border border-white/10 rounded-t-xl text-white backdrop-blur-md shrink-0 shadow-lg">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="bg-red-500/20 text-red-400 text-xs font-bold px-2 py-0.5 rounded border border-red-500/30 shrink-0">
+                    PDF
+                  </span>
+                  <span className="font-medium text-sm truncate text-white/95" title={currentFile.originalName}>
+                    {currentFile.originalName}
+                  </span>
+                  <span className="text-xs text-white/50 shrink-0 hidden sm:inline">
+                    • {formatBytes(currentFile.size)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowInfo(!showInfo)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${showInfo ? 'bg-white/20 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                    title="Toggle file details"
+                  >
+                    <Info size={14} />
+                    <span className="hidden sm:inline">{showInfo ? "Hide Info" : "Details"}</span>
+                  </button>
+                  <a 
+                    href={fileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                    title="Open in new window / full tab"
+                  >
+                    <ExternalLink size={14} />
+                    <span className="hidden sm:inline">Open in Tab</span>
+                  </a>
+                  <a 
+                    href={`/api/files/${currentFile.id}/download`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+                    title="Download PDF"
+                  >
+                    <Download size={14} />
+                    <span className="hidden sm:inline">Download</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* PDF Native Render */}
+              <div className="flex-1 w-full min-h-0 bg-slate-950 rounded-b-xl overflow-hidden border-x border-b border-white/10 shadow-2xl relative">
+                <iframe 
+                  key={currentFile.id}
+                  src={`${fileUrl}#view=FitH&toolbar=1`}
+                  title={currentFile.originalName}
+                  className="w-full h-full border-0 bg-white"
+                />
+              </div>
+            </div>
+          ) : isVideo ? (
+            <div className="w-full h-full flex flex-col p-2 sm:p-4 max-w-6xl mx-auto min-h-0 animate-in zoom-in-95 duration-200">
+              {/* Video Header with details & actions */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/90 border border-white/10 rounded-t-xl text-white backdrop-blur-md shrink-0 shadow-lg">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="bg-blue-500/20 text-blue-400 text-xs font-bold px-2 py-0.5 rounded border border-blue-500/30 shrink-0">
+                    VIDEO
+                  </span>
+                  <span className="font-medium text-sm truncate text-white/95" title={currentFile.originalName}>
+                    {currentFile.originalName}
+                  </span>
+                  <span className="text-xs text-white/50 shrink-0 hidden sm:inline">
+                    • {formatBytes(currentFile.size)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowInfo(!showInfo)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${showInfo ? 'bg-white/20 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                    title="Toggle file details"
+                  >
+                    <Info size={14} />
+                    <span className="hidden sm:inline">{showInfo ? "Hide Info" : "Details"}</span>
+                  </button>
+                  <a 
+                    href={fileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                    title="Open in new window / full tab"
+                  >
+                    <ExternalLink size={14} />
+                    <span className="hidden sm:inline">Open in Tab</span>
+                  </a>
+                  <a 
+                    href={`/api/files/${currentFile.id}/download`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+                    title="Download Video"
+                  >
+                    <Download size={14} />
+                    <span className="hidden sm:inline">Download</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Video Player */}
+              <div className="flex-1 w-full min-h-0 bg-black rounded-b-xl overflow-hidden border-x border-b border-white/10 shadow-2xl relative flex items-center justify-center">
+                <video 
+                  key={currentFile.id}
+                  src={fileUrl}
+                  controls 
+                  autoPlay
+                  playsInline
+                  className="max-w-full max-h-full"
+                />
+              </div>
+            </div>
+          ) : isAudio ? (
+            <div className="flex flex-col items-center justify-center gap-6 p-8 bg-slate-900/80 rounded-2xl border border-white/10 max-w-md w-full shadow-2xl text-white animate-in zoom-in-95 duration-200">
+              <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <Volume2 size={36} />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-white truncate max-w-xs">{currentFile.originalName}</p>
+                <p className="text-xs text-white/50 mt-1">{formatBytes(currentFile.size)}</p>
+              </div>
+              <audio controls src={fileUrl} className="w-full" autoPlay />
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-4 text-white/50">
-              {getFileIcon(currentFile.fileType)}
-              <p className="text-lg font-medium">{currentFile.originalName}</p>
-              <p className="text-sm">Preview not available for this file type.</p>
+            <div className="flex flex-col items-center justify-center p-8 bg-slate-900/80 rounded-2xl border border-white/10 max-w-lg w-full text-center shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-200">
+              <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+                {getFileIcon(currentFile.fileType)}
+              </div>
+              <h3 className="text-xl font-bold text-white mb-1 break-all">{currentFile.originalName}</h3>
+              <p className="text-xs text-white/50 mb-6">{formatBytes(currentFile.size)} • {currentFile.fileType}</p>
+              
+              <div className="w-full bg-white/5 rounded-xl p-4 text-left space-y-2 mb-6 text-xs text-white/70">
+                <div className="flex justify-between">
+                  <span className="text-white/40">File Type:</span>
+                  <span className="font-mono">{currentFile.mimeType || currentFile.fileType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/40">Uploaded:</span>
+                  <span>{new Date(currentFile.createdAt).toLocaleDateString()}</span>
+                </div>
+                {currentFile.uploadedBy?.name && (
+                  <div className="flex justify-between">
+                    <span className="text-white/40">Uploader:</span>
+                    <span>{currentFile.uploadedBy.name}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <a
+                  href={`/api/files/${currentFile.id}/download`}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-xl transition-all shadow-lg"
+                >
+                  <Download size={16} />
+                  Download File
+                </a>
+                <button
+                  onClick={() => setShowInfo(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  <Info size={16} />
+                  View Details
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -253,15 +446,16 @@ export function PhotoViewer({
 
   const ShareModal = () => {
     const [copied, setCopied] = useState(false)
-    const encodedUrl = encodeURIComponent(currentFileUrl)
-    const encodedTitle = encodeURIComponent(`Check out ${currentFile.originalName}`)
+    const currentFileUrl = typeof window !== 'undefined' ? `${window.location.origin}/uploads/${currentFile.bucketName}/${currentFile.storagePath}` : ""
+    const whatsappText = `Check out "${currentFile.originalName}" on PixBox:\n${currentFileUrl}`
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`
 
     const onCopy = async () => {
       try {
         await navigator.clipboard.writeText(currentFileUrl)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-        toast.success("Link copied to clipboard!")
+        toast.success("Share link copied to clipboard!")
       } catch (err) {
         toast.error("Failed to copy link")
       }
@@ -269,40 +463,49 @@ export function PhotoViewer({
 
     return (
       <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="sm:max-w-md text-foreground">
+        <DialogContent className="sm:max-w-md text-foreground rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle>Share File</DialogTitle>
-            <DialogDescription>
-              Share this link with anyone, or post it to social media.
+            <DialogTitle className="text-xl font-bold">Share File</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Share this file directly via WhatsApp or copy the link below.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center space-x-2 mt-4">
-            <Input readOnly value={currentFileUrl} className="flex-1" />
-            <Button size="icon" onClick={onCopy}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
+
+          {/* File Card Preview */}
+          <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 mt-2">
+            <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              {currentFile.fileType === "IMAGE" ? (
+                <img src={`/uploads/${currentFile.bucketName}/${currentFile.storagePath}`} alt={currentFile.originalName} className="w-full h-full object-cover" />
+              ) : (
+                getFileIcon(currentFile.fileType)
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-foreground truncate">{currentFile.originalName}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{formatBytes(currentFile.size)} • {currentFile.fileType}</p>
+            </div>
           </div>
-          <div className="flex justify-center gap-4 mt-6">
-            <a href={`https://wa.me/?text=${encodedTitle}%20${encodedUrl}`} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-green-50 hover:text-green-600 border-green-200" title="WhatsApp">
-                <MessageCircle className="h-5 w-5" />
+
+          {/* Dedicated WhatsApp Share Button */}
+          <div className="mt-4">
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+              <Button className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-emerald-500/20 transition-all">
+                <MessageCircle className="h-5 w-5 fill-current" />
+                Share on WhatsApp
               </Button>
             </a>
-            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-blue-50 hover:text-blue-600 border-blue-200" title="Facebook">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+          </div>
+
+          {/* Copy Direct Link */}
+          <div className="space-y-1.5 mt-4 pt-4 border-t border-border">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Direct Link</label>
+            <div className="flex items-center space-x-2">
+              <Input readOnly value={currentFileUrl} className="flex-1 text-xs rounded-xl bg-muted/50 font-mono" />
+              <Button size="sm" onClick={onCopy} className="rounded-xl px-4 gap-1.5">
+                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied" : "Copy"}
               </Button>
-            </a>
-            <a href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-sky-50 hover:text-sky-500 border-sky-200" title="Twitter">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
-              </Button>
-            </a>
-            <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 hover:bg-blue-50 hover:text-blue-700 border-blue-200" title="LinkedIn">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
-              </Button>
-            </a>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

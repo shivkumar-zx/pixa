@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "EmpVault",
+  title: "PixBox",
   description: "Internal Employee File & Media Dashboard",
 };
 

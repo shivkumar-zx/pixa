@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react"
-import { Download, Trash2, Share2, FileText, ImageIcon, Video, FileArchive, X, Check, Star } from "lucide-react"
+import { Download, Trash2, Share2, FileText, ImageIcon, Video, FileArchive, X, Check, Star, Play } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useBulkAction } from "@/components/files/bulk-action-provider"
@@ -170,19 +170,79 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                           onClick={(e) => handleItemClick(e, file.id)}
                           className={`group relative aspect-square flex items-center justify-center cursor-pointer transition-colors duration-200 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-muted'}`}
                         >
-                          {/* Image / Icon container */}
+                          {/* Image / Video / Document container */}
                           <div className={`w-full h-full overflow-hidden transition-all duration-200 ease-out ${isSelected ? 'scale-[0.82] rounded-lg shadow-sm' : 'scale-100 rounded-none'}`}>
-                            {file.fileType === "IMAGE" ? (
-                              <img 
-                                src={`/uploads/${file.bucketName}/${file.storagePath}`} 
-                                alt={file.originalName} 
-                                className="w-full h-full object-cover" 
-                              />
-                            ) : (
-                              <div className={`w-full h-full ${getFileBg(file.fileType)} flex items-center justify-center`}>
-                                {getFileIcon(file.fileType, true)}
-                              </div>
-                            )}
+                            {(() => {
+                              const isImage = file.fileType === "IMAGE" || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.originalName || "")
+                              const isVideo = file.fileType === "VIDEO" || /\.(mp4|webm|ogg|mov|mkv)$/i.test(file.originalName || "")
+
+                              if (isImage) {
+                                return (
+                                  <div className="w-full h-full relative">
+                                    <img 
+                                      src={`/uploads/${file.bucketName}/${file.storagePath}`} 
+                                      alt={file.originalName} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/75 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                      <p className="text-[11px] font-medium text-white truncate">{file.originalName}</p>
+                                      <p className="text-[9px] text-white/70">{formatBytes(file.size)}</p>
+                                    </div>
+                                  </div>
+                                )
+                              }
+
+                              if (isVideo) {
+                                return (
+                                  <div className="w-full h-full relative bg-slate-950 flex items-center justify-center overflow-hidden">
+                                    <video 
+                                      src={`/uploads/${file.bucketName}/${file.storagePath}#t=0.1`} 
+                                      className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-200" 
+                                      preload="metadata"
+                                      muted
+                                      playsInline
+                                    />
+                                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center group-hover:bg-black/10 transition-colors">
+                                      <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                                        <Play size={18} className="fill-white ml-0.5" />
+                                      </div>
+                                    </div>
+                                    <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+                                      <p className="text-[11px] font-semibold text-white truncate" title={file.originalName}>
+                                        {file.originalName}
+                                      </p>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-blue-500/80 text-white">
+                                          VIDEO
+                                        </span>
+                                        <span className="text-[9px] text-white/80">{formatBytes(file.size)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              }
+
+                              return (
+                                <div className={`w-full h-full ${getFileBg(file.fileType)} flex flex-col items-center justify-between p-2.5 text-center relative select-none`}>
+                                  <div className="flex-1 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/75 dark:bg-black/30 flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-110">
+                                      {getFileIcon(file.fileType, true)}
+                                    </div>
+                                  </div>
+                                  <div className="w-full bg-white/85 dark:bg-black/60 backdrop-blur-xs rounded-lg py-1 px-1.5 shadow-2xs">
+                                    <p className="text-[11px] font-semibold text-foreground/90 truncate" title={file.originalName}>
+                                      {file.originalName}
+                                    </p>
+                                    <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.2 rounded bg-foreground/10 text-foreground/75">
+                                        {file.originalName?.toLowerCase().endsWith(".pdf") ? "PDF" : (file.originalName.split('.').pop() || file.fileType)}
+                                      </span>
+                                      <span className="text-[9px] text-muted-foreground">{formatBytes(file.size)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })()}
                           </div>
                           
                           {/* Favorite Toggle Button */}

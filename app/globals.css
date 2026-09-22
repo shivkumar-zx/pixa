@@ -88,3 +88,31 @@
     border-radius: 99px;
   }
 }
+
+/* Responsive media query enhancements for Tablet (<= 1024px) and Mobile (<= 767px) */
+@media (max-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .responsive-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .responsive-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .responsive-modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    padding: 1rem !important;
+  }
+}

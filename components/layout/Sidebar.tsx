@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { usePathname } from "next/navigation"
+import { PixBoxLogo } from "@/components/pixbox-logo"
 import {
   LayoutDashboard,
   Files,
@@ -13,9 +14,7 @@ import {
   Activity,
   Bell,
   Users,
-  Tags,
   HardDrive,
-  Vault,
   ChevronRight,
   Settings,
   Star,
@@ -44,7 +43,6 @@ const navItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { label: "Users", href: "/dashboard/admin/users", icon: <Users size={18} />, adminOnly: true },
-  { label: "Categories", href: "/dashboard/admin/categories", icon: <Tags size={18} />, adminOnly: true },
   { label: "Storage Stats", href: "/dashboard/admin/storage", icon: <HardDrive size={18} />, adminOnly: true },
 ]
 
@@ -83,12 +81,12 @@ export default function Sidebar({ userRole, storageUsed = 0, storageQuota = 100 
   return (
     <aside className="flex flex-col h-full w-64 bg-[var(--sidebar-bg)] text-[var(--sidebar-text)] shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-6 h-[72px] shrink-0 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-brand-gradient flex items-center justify-center shadow-sm">
-          <Vault size={16} className="text-white" />
-        </div>
-        <span className="font-extrabold text-lg tracking-tight">EmpVault</span>
+      <div className="flex items-center px-6 h-[72px] shrink-0 border-b border-border">
+        <Link href="/dashboard/files">
+          <PixBoxLogo size={32} showText={true} />
+        </Link>
       </div>
+
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-1">
@@ -180,7 +178,7 @@ export default function Sidebar({ userRole, storageUsed = 0, storageQuota = 100 
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {clampedPercentage.toFixed(1)}% used
             </p>
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">EmpVault v1.0</p>
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">PixBox v1.0</p>
           </div>
         </div>
       </div>
