@@ -17,17 +17,26 @@ export async function getSignedUploadUrl(bucket: string, storagePath: string, ex
 }
 
 export async function getSignedDownloadUrl(bucket: string, storagePath: string, expiresIn = 900): Promise<string> {
-  // For local development, we serve the files directly from the public/uploads directory
-  return `/uploads/${bucket}/${storagePath}`
+  const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+  return `${baseUrl}/uploads/${bucket}/${storagePath}`
 }
 
 export async function deleteStorageFile(bucket: string, storagePath: string): Promise<void> {
   try {
-    const fullPath = path.join(process.cwd(), "public", "uploads", bucket, storagePath)
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath)
+    const hostingerUrl = process.env.HOSTINGER_API_URL
+    const hostingerSecret = process.env.HOSTINGER_API_SECRET
+    
+    if (hostingerUrl && hostingerSecret) {
+      const targetUrl = `${hostingerUrl}?key=${hostingerSecret}&bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(storagePath)}`
+      await fetch(targetUrl, { method: "DELETE" })
+    } else {
+      // Fallback for local development
+      const fullPath = path.join(process.cwd(), "public", "uploads", bucket, storagePath)
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath)
+      }
     }
   } catch (error: any) {
-    console.error(`Local Delete Error: ${error.message}`)
+    console.error(`Delete Error: ${error.message}`)
   }
 }
