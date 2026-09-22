@@ -3,8 +3,11 @@
 import React from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { PhotoViewer } from "@/components/files/photo-viewer"
 import { Download, Trash2, Share2, FileText, ImageIcon, Video, FileArchive } from "lucide-react"
 import { useBulkAction } from "./bulk-action-provider"
+
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
 
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)
@@ -84,13 +87,13 @@ export function FileTable({ files }: { files: any[] }) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${getFileBg(file.fileType)}`}>
-                      {file.fileType === "IMAGE" ? (
-                        <img src={`/uploads/${file.bucketName}/${file.storagePath}`} alt={file.originalName} className="w-full h-full object-cover" />
-                      ) : (
-                        getFileIcon(file.fileType)
-                      )}
-                    </div>
+                    {file.fileType === "IMAGE" ? (
+                      <div className="w-9 h-9 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-xs border border-border/50">
+                        <img src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`} alt={file.originalName} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      getFileIcon(file.fileType)
+                    )}
                     <Link href={`/dashboard/files/${file.id}`} className="font-medium hover:text-primary transition-colors max-w-[200px] sm:max-w-xs truncate">
                       {file.originalName}
                     </Link>

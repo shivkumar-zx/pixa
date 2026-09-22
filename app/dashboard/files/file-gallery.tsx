@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { useBulkAction } from "@/components/files/bulk-action-provider"
 import { PhotoViewer } from "@/components/files/photo-viewer"
 
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)
   if (b === 0) return "0 B"
@@ -180,7 +181,7 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                                 return (
                                   <div className="w-full h-full relative">
                                     <img 
-                                      src={`/uploads/${file.bucketName}/${file.storagePath}`} 
+                                      src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`} 
                                       alt={file.originalName} 
                                       className="w-full h-full object-cover" 
                                     />
@@ -196,7 +197,7 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                                 return (
                                   <div className="w-full h-full relative bg-slate-950 flex items-center justify-center overflow-hidden">
                                     <video 
-                                      src={`/uploads/${file.bucketName}/${file.storagePath}#t=0.1`} 
+                                      src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}#t=0.1`} 
                                       className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-200" 
                                       preload="metadata"
                                       muted

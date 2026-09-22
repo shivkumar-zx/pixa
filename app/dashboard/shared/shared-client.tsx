@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+
 function getFileIcon(type: string) {
   switch (type) {
     case "IMAGE": return <ImageIcon size={20} className="text-violet-500" />
@@ -109,35 +111,33 @@ export function SharedClient({ initialShares }: { initialShares: any[] }) {
               </div>
             </div>
 
-            <div className="border border-border rounded-xl bg-muted/40 p-2 min-h-[300px] flex items-center justify-center overflow-hidden">
+            <div className="border border-border flex-1 w-full bg-black flex items-center justify-center p-4 rounded-xl overflow-hidden">
               {previewFile.fileType === "IMAGE" ? (
                 <img
-                  src={previewFile.url || `/uploads/${previewFile.storedName}`}
+                  src={previewFile.url || `${baseUrl}/uploads/${previewFile.storedName}`}
                   alt={previewFile.originalName}
-                  className="max-h-[450px] object-contain rounded-lg shadow-sm"
+                  className="max-w-full max-h-[70vh] object-contain shadow-2xl rounded"
                 />
               ) : previewFile.fileType === "VIDEO" ? (
                 <video
-                  src={previewFile.url || `/uploads/${previewFile.storedName}`}
+                  src={previewFile.url || `${baseUrl}/uploads/${previewFile.storedName}`}
                   controls
-                  className="max-h-[450px] w-full rounded-lg"
+                  className="max-w-full max-h-[70vh] shadow-2xl rounded"
                 />
               ) : (previewFile.mimeType === "application/pdf" || (previewFile.originalName || "").toLowerCase().endsWith(".pdf")) ? (
-                <div className="w-full flex flex-col h-[500px]">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-border text-xs text-muted-foreground">
-                    <span className="font-semibold text-red-500 bg-red-500/10 px-2 py-0.5 rounded">PDF Document</span>
-                    <a 
-                      href={previewFile.url || `/uploads/${previewFile.storedName}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-medium"
+                <div className="w-full h-full flex flex-col items-center justify-center">
+                  <div className="w-full flex justify-end mb-2">
+                    <a
+                      href={previewFile.url || `${baseUrl}/uploads/${previewFile.storedName}`}
+                      download={previewFile.originalName}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-md text-sm font-medium hover:bg-primary/20 transition-colors"
                     >
-                      Open in New Tab
+                      <Download size={14} /> Download PDF
                     </a>
                   </div>
                   <iframe
-                    src={`${previewFile.url || `/uploads/${previewFile.storedName}`}#view=FitH&toolbar=1`}
-                    className="w-full flex-1 rounded-lg border border-border bg-white"
+                    src={`${previewFile.url || `${baseUrl}/uploads/${previewFile.storedName}`}#view=FitH&toolbar=1`}
+                    className="w-full h-[65vh] bg-white rounded shadow-2xl"
                     title={previewFile.originalName}
                   />
                 </div>

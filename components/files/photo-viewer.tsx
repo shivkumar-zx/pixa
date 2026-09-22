@@ -10,6 +10,8 @@ import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)
   if (b === 0) return "0 B"
@@ -124,7 +126,7 @@ export function PhotoViewer({
 
   if (!currentFile || !mounted) return null
 
-  const fileUrl = currentFile.url || `/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
+  const fileUrl = currentFile.url || `${baseUrl}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
   const fileName = currentFile.originalName || ""
   const isImage = currentFile.fileType === "IMAGE" || currentFile.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(fileName)
   const isPdf = 
@@ -446,7 +448,7 @@ export function PhotoViewer({
 
   const ShareModal = () => {
     const [copied, setCopied] = useState(false)
-    const currentFileUrl = typeof window !== 'undefined' ? `${window.location.origin}/uploads/${currentFile.bucketName}/${currentFile.storagePath}` : ""
+    const currentFileUrl = typeof window !== 'undefined' ? `${baseUrl}/uploads/${currentFile.bucketName}/${currentFile.storagePath}` : ""
     const whatsappText = `Check out "${currentFile.originalName}" on PixBox:\n${currentFileUrl}`
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`
 
@@ -475,7 +477,7 @@ export function PhotoViewer({
           <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 mt-2">
             <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
               {currentFile.fileType === "IMAGE" ? (
-                <img src={`/uploads/${currentFile.bucketName}/${currentFile.storagePath}`} alt={currentFile.originalName} className="w-full h-full object-cover" />
+                <img src={`${baseUrl}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`} alt={currentFile.originalName} className="w-full h-full object-cover" />
               ) : (
                 getFileIcon(currentFile.fileType)
               )}
