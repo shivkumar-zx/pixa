@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { deleteStorageFile } from "@/lib/storage"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(req: Request) {
   try {
     const session = await auth()

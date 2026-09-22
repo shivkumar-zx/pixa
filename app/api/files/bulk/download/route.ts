@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(req: Request) {
   // TODO: Implement bulk download by fetching files from Hostinger
   // The 'archiver' package causes Vercel build errors (Webpack 'Default condition should be last one')

@@ -5,6 +5,8 @@ import { getBucketForMimeType, generateStoragePath, getSignedUploadUrl } from "@
 import prisma from "@/lib/prisma"
 import { v4 as uuidv4 } from "uuid"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(req: Request) {
   try {
     const session = await auth()

@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth"
 import { getSignedDownloadUrl } from "@/lib/storage"
 import prisma from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(req: Request, { params }: { params: { fileId: string } }) {
   try {
     const session = await auth()

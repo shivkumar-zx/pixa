@@ -5,6 +5,8 @@ import fs from "fs"
 import path from "path"
 import { Readable } from "stream"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(req: Request, { params }: { params: { fileId: string } }) {
   try {
     const session = await auth()
