@@ -114,10 +114,11 @@ export default function Topbar({ user, onOpenMobileMenu }: TopbarProps) {
 
       {/* Actions */}
       <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2">
-        {/* Upload shortcut */}
-        <Button asChild variant="ghost" size="icon" className="rounded-full bg-primary/10 text-primary hover:bg-primary/20 shrink-0">
-          <Link href={uploadUrl} title="Upload">
-            <Upload size={18} />
+        {/* Upload button with visible icon and text */}
+        <Button asChild className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm h-9 px-3.5 gap-2 shrink-0 shadow-xs">
+          <Link href={uploadUrl} title="Upload Files">
+            <Upload size={16} />
+            <span className="font-semibold">Upload</span>
           </Link>
         </Button>
 

@@ -35,7 +35,6 @@ function UploadForm() {
   const [quickFolderName, setQuickFolderName] = useState("")
   const [quickCreating, setQuickCreating] = useState(false)
   const [activeCategoryName, setActiveCategoryName] = useState<string>("")
-  const [customDate, setCustomDate] = useState<string>("")
 
   const targetCategory = urlCategoryId || selectedCategoryId
 
@@ -171,7 +170,6 @@ function UploadForm() {
             mimeType: uf.file.type,
             size: uf.file.size,
             categoryId: targetCategory || null,
-            customDate: customDate || undefined,
           }),
         })
 
@@ -286,19 +284,6 @@ function UploadForm() {
         </div>
       )}
 
-      {/* Testing Utilities */}
-      <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
-        <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-500">Test Override: Custom Date</h2>
-          <p className="text-xs text-amber-700 dark:text-amber-600">Optionally set a custom upload date to test the gallery date filters.</p>
-        </div>
-        <input 
-          type="date" 
-          value={customDate}
-          onChange={(e) => setCustomDate(e.target.value)}
-          className="bg-background border border-border rounded-xl px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/50 transition-all shadow-sm max-w-[200px]"
-        />
-      </div>
 
       {/* Quick create folder form */}
       {!urlCategoryId && showQuickFolderForm && (

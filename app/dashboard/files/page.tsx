@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client"
 import { BulkActionProvider } from "@/components/files/bulk-action-provider"
 import { BulkActionBar } from "@/components/files/bulk-action-bar"
 import { FileTable } from "@/components/files/file-table"
+import { UploadModal } from "@/components/files/upload-modal"
 
 function formatBytes(bytes: bigint): string {
   const b = Number(bytes)
@@ -190,6 +191,7 @@ export default async function FilesPage({
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">{files.length} files total</p>
         </div>
+        <UploadModal defaultCategoryId={categoryId} triggerText="Upload" />
       </div>
 
       <div className="flex items-center justify-between mb-2">
@@ -206,13 +208,9 @@ export default async function FilesPage({
           <p className="text-muted-foreground text-sm mt-1 max-w-sm">
             Try adjusting your filters or upload a new file to get started.
           </p>
-          <Link
-            href="/dashboard/upload"
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-gradient hover:opacity-95 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Upload size={16} />
-            Upload File
-          </Link>
+          <div className="mt-6">
+            <UploadModal defaultCategoryId={categoryId} triggerText="Upload File" />
+          </div>
         </div>
       ) : viewMode === "list" ? (
         <FileTable files={files} />
