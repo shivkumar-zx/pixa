@@ -583,34 +583,26 @@ export function PhotoViewer({
 
           {/* Action Buttons */}
           <div className="mt-4 space-y-2.5">
-            {/* Direct Image File Share (Sends actual photo to WhatsApp/Apps) */}
+            {/* Primary: Send Image directly to WhatsApp as a Photo File */}
             <Button 
               onClick={handleShareDirectFile} 
               disabled={sharingDirect}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-indigo-500/20 transition-all"
+              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-emerald-500/25 transition-all"
             >
               {sharingDirect ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Preparing Photo...</span>
+                  <span>Preparing Photo for WhatsApp...</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="h-5 w-5" />
-                  <span>Share Photo Directly (Image File)</span>
+                  <MessageCircle className="h-5 w-5 fill-current" />
+                  <span>Send Image to WhatsApp (Photo)</span>
                 </>
               )}
             </Button>
 
-            {/* WhatsApp Link Share */}
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
-              <Button className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-emerald-500/20 transition-all">
-                <MessageCircle className="h-5 w-5 fill-current" />
-                <span>Share via WhatsApp (Link)</span>
-              </Button>
-            </a>
-
-            {/* Copy Actual Image for WhatsApp Web */}
+            {/* Optional: Copy Actual Image for WhatsApp Web */}
             {currentFile.fileType === "IMAGE" && (
               <Button 
                 variant="outline" 
@@ -619,9 +611,17 @@ export function PhotoViewer({
                 className="w-full rounded-xl h-10 flex items-center justify-center gap-2 border-border/80 text-foreground text-xs font-semibold hover:bg-muted"
               >
                 {copiedImage ? <Check className="h-4 w-4 text-emerald-500" /> : <ImageIcon className="h-4 w-4 text-primary" />}
-                <span>{copiedImage ? "Image Copied! Press Ctrl+V in WhatsApp" : "Copy Image to Clipboard (Paste in WhatsApp Web)"}</span>
+                <span>{copiedImage ? "Image Copied! Paste (Ctrl+V) in WhatsApp Web" : "Copy Image (Paste in WhatsApp Web)"}</span>
               </Button>
             )}
+
+            {/* Secondary: Share Link on WhatsApp */}
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+              <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground h-8 gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span>Or send as Web Link instead</span>
+              </Button>
+            </a>
           </div>
 
           {/* Copy Direct Link */}

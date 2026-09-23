@@ -112,24 +112,25 @@ export default async function FilesPage({
     }
   }
 
-  const files = await prisma.file.findMany({
-    where: whereClause,
-    orderBy: { createdAt: "desc" },
-    include: {
-      uploadedBy: { select: { name: true, email: true } },
-      category: { select: { name: true } },
-      favorites: { where: { userId }, select: { id: true } }
-    },
-  })
+  const [files, category] = await Promise.all([
+    prisma.file.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      include: {
+        uploadedBy: { select: { name: true, email: true } },
+        category: { select: { name: true } },
+        favorites: { where: { userId }, select: { id: true } }
+      },
+    }),
+    categoryId
+      ? prisma.category.findUnique({
+          where: { id: categoryId },
+          select: { name: true }
+        })
+      : Promise.resolve(null)
+  ])
 
-  let categoryName = ""
-  if (categoryId) {
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { name: true }
-    })
-    categoryName = category?.name || ""
-  }
+  const categoryName = category?.name || ""
 
   // Group files by date for grid view
   const groupedFiles: { dateLabel: string, id: string, files: typeof files }[] = []
