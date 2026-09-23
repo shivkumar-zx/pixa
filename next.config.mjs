@@ -6,6 +6,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: 'https://pixboximg.webstaging.in/uploads/:path*',
+      },
+    ]
+  },
 };
 
 export default nextConfig;
