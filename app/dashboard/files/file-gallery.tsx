@@ -285,6 +285,17 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                           >
                             <Check size={14} strokeWidth={3} className={isSelected ? 'opacity-100' : ''} />
                           </button>
+
+                          {/* Quick 1-Click Download Button */}
+                          <a
+                            href={`/api/files/${file.id}/download`}
+                            download={file.originalName}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute bottom-2 right-2 p-1.5 rounded-full flex items-center justify-center transition-all duration-150 opacity-0 group-hover:opacity-100 bg-black/50 hover:bg-black/80 text-white shadow-md hover:scale-105 z-10 backdrop-blur-xs"
+                            title="Download original file"
+                          >
+                            <Download size={14} />
+                          </a>
                         </div>
                       )
                     })}

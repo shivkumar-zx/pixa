@@ -161,7 +161,12 @@ export function PhotoViewer({
           <button onClick={handleShare} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Share">
             <Share2 size={20} />
           </button>
-          <a href={`/api/files/${currentFile.id}/download`} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Download">
+          <a 
+            href={`/api/files/${currentFile.id}/download`} 
+            download={currentFile.originalName} 
+            className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" 
+            title="Download Original"
+          >
             <Download size={20} />
           </a>
           <button onClick={handleDelete} className="text-white hover:bg-white/20 rounded-full h-10 w-10 flex items-center justify-center transition-colors" title="Delete">

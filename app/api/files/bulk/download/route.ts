@@ -47,10 +47,14 @@ export async function POST(req: Request) {
       // 2. Fetch from Hostinger
       const fileUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
       try {
-        const res = await fetch(fileUrl)
+        const res = await fetch(fileUrl, {
+          headers: {
+            "Accept-Encoding": "identity",
+          }
+        })
         if (res.ok) {
           const arrayBuf = await res.arrayBuffer()
-          zip.file(file.originalName, Buffer.from(arrayBuf))
+          zip.file(file.originalName, Buffer.from(arrayBuf), { binary: true })
         }
       } catch (err) {
         console.error(`Failed to include file ${file.id} in zip:`, err)

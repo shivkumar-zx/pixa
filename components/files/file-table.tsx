@@ -127,7 +127,7 @@ export function FileTable({ files }: { files: any[] }) {
                   <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{new Date(file.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <a href={`/api/files/${file.id}/download`} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="Download">
+                      <a href={`/api/files/${file.id}/download`} download={file.originalName} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="Download Original">
                         <Download size={14} />
                       </a>
                       <button 

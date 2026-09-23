@@ -1,5 +1,5 @@
 <?php
-// Hostinger Secure Upload & Delete API Script
+// Hostinger Secure Upload, Download & Delete API Script
 
 // IMPORTANT: This must match the HOSTINGER_API_SECRET in your Vercel .env settings.
 $secret = 'pixbox_secure_upload_key_123!'; 
@@ -21,6 +21,33 @@ if (!$bucket || !$path) {
 $path = str_replace(['../', '..\\'], '', $path);
 $bucket = str_replace(['../', '..\\'], '', $bucket);
 $targetFile = __DIR__ . '/uploads/' . $bucket . '/' . $path;
+
+// Handle Direct File Downloads (GET with action=download)
+if (isset($_GET['action']) && $_GET['action'] === 'download') {
+    if (!file_exists($targetFile) || !is_file($targetFile)) {
+        http_response_code(404);
+        die('File not found');
+    }
+
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    $filename = $_GET['filename'] ?? basename($targetFile);
+    $mime = mime_content_type($targetFile) ?: 'application/octet-stream';
+
+    header('Content-Description: File Transfer');
+    header('Content-Type: ' . $mime);
+    header('Content-Disposition: attachment; filename="' . rawurlencode($filename) . '"');
+    header('Content-Transfer-Encoding: binary');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0, no-transform');
+    header('Pragma: public');
+    header('Content-Length: ' . filesize($targetFile));
+
+    readfile($targetFile);
+    exit;
+}
 
 // Handle File Uploads (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

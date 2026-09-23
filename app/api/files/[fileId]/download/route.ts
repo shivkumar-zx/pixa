@@ -60,6 +60,7 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
     const filePath = path.join(process.cwd(), "public", "uploads", file.bucketName, file.storagePath)
     if (fs.existsSync(filePath)) {
       const fileStream = fs.createReadStream(filePath)
+      const stat = fs.statSync(filePath)
       const webStream = new ReadableStream({
         start(controller) {
           fileStream.on('data', chunk => controller.enqueue(chunk))
@@ -71,30 +72,40 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       return new NextResponse(webStream as any, {
         headers: {
           "Content-Disposition": `attachment; filename="${encodeURIComponent(file.originalName)}"`,
-          "Content-Type": accurateMime
+          "Content-Type": accurateMime,
+          "Content-Length": stat.size.toString(),
+          "Cache-Control": "no-transform, public, max-age=86400",
         }
       })
     }
 
-    // 2. Fetch from Hostinger storage
+    // 2. Fetch from Hostinger storage with uncompressed original bytes
     const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
     const fileUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
 
-    const hostingerRes = await fetch(fileUrl)
-    if (!hostingerRes.ok || !hostingerRes.body) {
+    // Request with identity encoding to prevent Hostinger LiteSpeed/CDN from compressing (GZIP/Brotli)
+    const hostingerRes = await fetch(fileUrl, {
+      headers: {
+        "Accept-Encoding": "identity",
+      }
+    })
+
+    if (!hostingerRes.ok) {
       console.error(`Download fetch failed (${hostingerRes.status}): ${fileUrl}`)
       return NextResponse.json({ error: "File not found on storage" }, { status: 404 })
     }
 
+    // Read full uncompressed array buffer
+    const arrayBuffer = await hostingerRes.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
     const headers = new Headers()
     headers.set("Content-Disposition", `attachment; filename="${encodeURIComponent(file.originalName)}"`)
     headers.set("Content-Type", accurateMime)
-    const contentLength = hostingerRes.headers.get("content-length")
-    if (contentLength) {
-      headers.set("Content-Length", contentLength)
-    }
+    headers.set("Content-Length", buffer.length.toString())
+    headers.set("Cache-Control", "no-transform, public, max-age=86400")
 
-    return new NextResponse(hostingerRes.body, { headers })
+    return new NextResponse(buffer, { headers })
 
   } catch (error) {
     console.error("Download error:", error)
