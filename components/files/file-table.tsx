@@ -7,7 +7,7 @@ import { PhotoViewer } from "@/components/files/photo-viewer"
 import { Download, Trash2, Share2, FileText, ImageIcon, Video, FileArchive } from "lucide-react"
 import { useBulkAction } from "./bulk-action-provider"
 
-const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
 
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)

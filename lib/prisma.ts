@@ -9,7 +9,6 @@ declare global {
 }
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
+globalThis.prismaGlobal = prisma
 
 export default prisma
-
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma

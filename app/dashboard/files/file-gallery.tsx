@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useBulkAction } from "@/components/files/bulk-action-provider"
 import { PhotoViewer } from "@/components/files/photo-viewer"
 
-const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
 function formatBytes(bytes: bigint | number): string {
   const b = Number(bytes)
   if (b === 0) return "0 B"
@@ -184,6 +184,8 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
                                       src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`} 
                                       alt={file.originalName} 
                                       className="w-full h-full object-cover" 
+                                      loading="lazy"
+                                      decoding="async"
                                     />
                                     <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/75 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                       <p className="text-[11px] font-medium text-white truncate">{file.originalName}</p>

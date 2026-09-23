@@ -79,6 +79,10 @@ model File {
   shares         FileShare[]  @relation("FileShares")
   activityLogs   ActivityLog[] @relation("FileActivityLogs")
   favorites      Favorite[]    @relation("FileFavorites")
+
+  @@index([uploadedById, status, createdAt])
+  @@index([status, createdAt])
+  @@index([categoryId])
 }
 
 model Favorite {
