@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import fs from "fs"
 import path from "path"
-import { Readable } from "stream"
 
 export const dynamic = "force-dynamic"
 
@@ -22,10 +21,6 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       return NextResponse.json({ error: "File not found" }, { status: 404 })
     }
 
-    // Role check logic (simplified): 
-    // If not admin/manager and not the uploader, we'd normally check shares.
-    // For now, allow download if it's active.
-    
     // Increment download count in background
     await prisma.file.update({
       where: { id: file.id },
@@ -42,28 +37,45 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       }
     }).catch(console.error)
 
+    // 1. Fallback for local development (if file exists on disk)
     const filePath = path.join(process.cwd(), "public", "uploads", file.bucketName, file.storagePath)
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
+    if (fs.existsSync(filePath)) {
+      const fileStream = fs.createReadStream(filePath)
+      const webStream = new ReadableStream({
+        start(controller) {
+          fileStream.on('data', chunk => controller.enqueue(chunk))
+          fileStream.on('end', () => controller.close())
+          fileStream.on('error', err => controller.error(err))
+        }
+      })
+
+      return new NextResponse(webStream as any, {
+        headers: {
+          "Content-Disposition": `attachment; filename="${encodeURIComponent(file.originalName)}"`,
+          "Content-Type": file.mimeType || "application/octet-stream"
+        }
+      })
     }
 
-    const fileStream = fs.createReadStream(filePath)
-    
-    // Convert Node.js ReadStream to Web ReadableStream
-    const webStream = new ReadableStream({
-      start(controller) {
-        fileStream.on('data', chunk => controller.enqueue(chunk))
-        fileStream.on('end', () => controller.close())
-        fileStream.on('error', err => controller.error(err))
-      }
-    })
+    // 2. Fetch from Hostinger storage
+    const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
+    const fileUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
 
-    return new NextResponse(webStream as any, {
-      headers: {
-        "Content-Disposition": `attachment; filename="${file.originalName}"`,
-        "Content-Type": "application/octet-stream"
-      }
-    })
+    const hostingerRes = await fetch(fileUrl)
+    if (!hostingerRes.ok || !hostingerRes.body) {
+      console.error(`Download fetch failed (${hostingerRes.status}): ${fileUrl}`)
+      return NextResponse.json({ error: "File not found on storage" }, { status: 404 })
+    }
+
+    const headers = new Headers()
+    headers.set("Content-Disposition", `attachment; filename="${encodeURIComponent(file.originalName)}"`)
+    headers.set("Content-Type", file.mimeType || hostingerRes.headers.get("content-type") || "application/octet-stream")
+    const contentLength = hostingerRes.headers.get("content-length")
+    if (contentLength) {
+      headers.set("Content-Length", contentLength)
+    }
+
+    return new NextResponse(hostingerRes.body, { headers })
 
   } catch (error) {
     console.error("Download error:", error)

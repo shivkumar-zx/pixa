@@ -17,7 +17,7 @@ export async function getSignedUploadUrl(bucket: string, storagePath: string, ex
 }
 
 export async function getSignedDownloadUrl(bucket: string, storagePath: string, expiresIn = 900): Promise<string> {
-  const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || ""
+  const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
   return `${baseUrl}/uploads/${bucket}/${storagePath}`
 }
 

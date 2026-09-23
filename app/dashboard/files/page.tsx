@@ -60,7 +60,7 @@ export default async function FilesPage({
 
   const whereClause: Prisma.FileWhereInput = {
     status: "ACTIVE",
-    ...(role !== "ADMIN" && role !== "MANAGER" ? { uploadedById: userId } : {}),
+    uploadedById: userId,
   }
 
   if (q) {

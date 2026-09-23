@@ -448,9 +448,13 @@ export function PhotoViewer({
 
   const ShareModal = () => {
     const [copied, setCopied] = useState(false)
-    const currentFileUrl = typeof window !== 'undefined' ? `${baseUrl}/uploads/${currentFile.bucketName}/${currentFile.storagePath}` : ""
+    const host = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixbox.webstaging.in")
+    const cleanHost = host.replace(/\/$/, '')
+    const currentFileUrl = `${cleanHost}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
     const whatsappText = `Check out "${currentFile.originalName}" on PixBox:\n${currentFileUrl}`
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`
 
     const onCopy = async () => {
       try {
@@ -477,7 +481,7 @@ export function PhotoViewer({
           <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 mt-2">
             <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
               {currentFile.fileType === "IMAGE" ? (
-                <img src={`${baseUrl}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`} alt={currentFile.originalName} className="w-full h-full object-cover" />
+                <img src={`${baseUrl || ''}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`} alt={currentFile.originalName} className="w-full h-full object-cover" />
               ) : (
                 getFileIcon(currentFile.fileType)
               )}
@@ -489,13 +493,32 @@ export function PhotoViewer({
           </div>
 
           {/* Dedicated WhatsApp Share Button */}
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
               <Button className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-emerald-500/20 transition-all">
                 <MessageCircle className="h-5 w-5 fill-current" />
                 Share on WhatsApp
               </Button>
             </a>
+
+            {typeof navigator !== 'undefined' && navigator.share && (
+              <Button 
+                variant="outline" 
+                onClick={async () => {
+                  try {
+                    await navigator.share({
+                      title: currentFile.originalName,
+                      text: `Check out "${currentFile.originalName}" on PixBox`,
+                      url: currentFileUrl,
+                    })
+                  } catch (e) {}
+                }}
+                className="w-full rounded-xl h-11 flex items-center justify-center gap-2.5"
+              >
+                <Share2 className="h-4 w-4" />
+                More Sharing Options
+              </Button>
+            )}
           </div>
 
           {/* Copy Direct Link */}

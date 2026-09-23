@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const files = await prisma.file.findMany({
       where: {
         id: { in: fileIds },
-        ...(role !== "ADMIN" && role !== "MANAGER" ? { uploadedById: userId } : {})
+        uploadedById: userId
       }
     })
 

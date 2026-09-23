@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { PhotoViewer } from "@/components/files/photo-viewer"
@@ -39,6 +39,7 @@ function getFileBg(type: string) {
 
 export function FileTable({ files }: { files: any[] }) {
   const { selectedFiles, toggleFile, toggleAll } = useBulkAction()
+  const [viewingFileId, setViewingFileId] = useState<string | null>(null)
 
   const allSelected = files.length > 0 && files.every(f => selectedFiles.has(f.id))
   const someSelected = files.some(f => selectedFiles.has(f.id))
@@ -48,85 +49,105 @@ export function FileTable({ files }: { files: any[] }) {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
-      <table className="w-full text-sm text-left">
-        <thead>
-          <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 w-10">
-              <input 
-                type="checkbox" 
-                checked={allSelected}
-                ref={input => { if (input) input.indeterminate = someSelected && !allSelected }}
-                onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-              />
-            </th>
-            <th className="px-4 py-3 font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground">Category</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground">Size</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Uploaded By</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Date</th>
-            <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {files.map(file => {
-            const isSelected = selectedFiles.has(file.id)
-            return (
-              <tr 
-                key={file.id} 
-                className={`hover:bg-accent/40 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
-              >
-                <td className="px-4 py-3">
-                  <input 
-                    type="checkbox" 
-                    checked={isSelected}
-                    onChange={() => toggleFile(file.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    {file.fileType === "IMAGE" ? (
-                      <div className="w-9 h-9 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-xs border border-border/50">
-                        <img src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`} alt={file.originalName} className="w-full h-full object-cover" />
-                      </div>
+    <>
+      {viewingFileId && (
+        <PhotoViewer
+          files={files}
+          initialFileId={viewingFileId}
+          onClose={() => setViewingFileId(null)}
+        />
+      )}
+
+      <div className="bg-card border border-border rounded-xl overflow-hidden mt-4">
+        <table className="w-full text-sm text-left">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="px-4 py-3 w-10">
+                <input 
+                  type="checkbox" 
+                  checked={allSelected}
+                  ref={input => { if (input) input.indeterminate = someSelected && !allSelected }}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                />
+              </th>
+              <th className="px-4 py-3 font-medium text-muted-foreground">Name</th>
+              <th className="px-4 py-3 font-medium text-muted-foreground">Category</th>
+              <th className="px-4 py-3 font-medium text-muted-foreground">Size</th>
+              <th className="px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Uploaded By</th>
+              <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Date</th>
+              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {files.map(file => {
+              const isSelected = selectedFiles.has(file.id)
+              return (
+                <tr 
+                  key={file.id} 
+                  className={`hover:bg-accent/40 transition-colors group ${isSelected ? 'bg-primary/5' : ''}`}
+                >
+                  <td className="px-4 py-3">
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={() => toggleFile(file.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {file.fileType === "IMAGE" ? (
+                        <div 
+                          onClick={() => setViewingFileId(file.id)}
+                          className="w-9 h-9 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-xs border border-border/50 cursor-pointer hover:opacity-80 transition-opacity"
+                        >
+                          <img src={`${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`} alt={file.originalName} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        getFileIcon(file.fileType)
+                      )}
+                      <button 
+                        onClick={() => setViewingFileId(file.id)}
+                        className="font-medium hover:text-primary transition-colors max-w-[200px] sm:max-w-xs truncate text-left"
+                      >
+                        {file.originalName}
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {file.category ? (
+                      <Badge variant="secondary" className="font-normal text-xs">{file.category.name}</Badge>
                     ) : (
-                      getFileIcon(file.fileType)
+                      <span className="text-muted-foreground text-xs">—</span>
                     )}
-                    <Link href={`/dashboard/files/${file.id}`} className="font-medium hover:text-primary transition-colors max-w-[200px] sm:max-w-xs truncate">
-                      {file.originalName}
-                    </Link>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {file.category ? (
-                    <Badge variant="secondary" className="font-normal text-xs">{file.category.name}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{formatBytes(file.size)}</td>
-                <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{file.uploadedBy.name}</td>
-                <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{new Date(file.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href={`/api/files/${file.id}/download`} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
-                      <Download size={14} />
-                    </a>
-                    <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
-                      <Share2 size={14} />
-                    </button>
-                    <button className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatBytes(file.size)}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{file.uploadedBy.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{new Date(file.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a href={`/api/files/${file.id}/download`} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="Download">
+                        <Download size={14} />
+                      </a>
+                      <button 
+                        onClick={() => setViewingFileId(file.id)} 
+                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                        title="Share / WhatsApp"
+                      >
+                        <Share2 size={14} />
+                      </button>
+                      <button className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

@@ -29,7 +29,7 @@ export default async function FavoritesPage({
 
   const whereClause: Prisma.FileWhereInput = {
     status: "ACTIVE",
-    ...(role !== "ADMIN" && role !== "MANAGER" ? { uploadedById: userId } : {}),
+    uploadedById: userId,
     favorites: {
       some: {
         userId
