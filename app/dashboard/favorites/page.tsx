@@ -170,7 +170,17 @@ export default async function FavoritesPage({
         <FileGallery groupedFiles={groupedFiles} scrubberLinks={scrubberLinks} />
       )}
 
-      <BulkActionBar />
+      <BulkActionBar 
+        files={files.map(f => ({
+          id: f.id,
+          originalName: f.originalName,
+          fileType: f.fileType,
+          mimeType: f.mimeType,
+          bucketName: f.bucketName,
+          storagePath: f.storagePath,
+          size: Number(f.size)
+        }))} 
+      />
     </div>
     </BulkActionProvider>
   )
