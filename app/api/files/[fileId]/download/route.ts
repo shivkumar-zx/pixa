@@ -6,6 +6,23 @@ import path from "path"
 
 export const dynamic = "force-dynamic"
 
+function getAccurateMime(fileName: string, dbMime?: string): string {
+  if (dbMime && dbMime !== "application/octet-stream") return dbMime
+  const ext = (fileName.split('.').pop() || '').toLowerCase()
+  const map: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    pdf: 'application/pdf',
+    mp4: 'video/mp4',
+    mp3: 'audio/mpeg'
+  }
+  return map[ext] || 'application/octet-stream'
+}
+
 export async function GET(req: Request, { params }: { params: { fileId: string } }) {
   try {
     const session = await auth()
@@ -37,6 +54,8 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       }
     }).catch(console.error)
 
+    const accurateMime = getAccurateMime(file.originalName, file.mimeType)
+
     // 1. Fallback for local development (if file exists on disk)
     const filePath = path.join(process.cwd(), "public", "uploads", file.bucketName, file.storagePath)
     if (fs.existsSync(filePath)) {
@@ -52,7 +71,7 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       return new NextResponse(webStream as any, {
         headers: {
           "Content-Disposition": `attachment; filename="${encodeURIComponent(file.originalName)}"`,
-          "Content-Type": file.mimeType || "application/octet-stream"
+          "Content-Type": accurateMime
         }
       })
     }
@@ -69,7 +88,7 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
 
     const headers = new Headers()
     headers.set("Content-Disposition", `attachment; filename="${encodeURIComponent(file.originalName)}"`)
-    headers.set("Content-Type", file.mimeType || hostingerRes.headers.get("content-type") || "application/octet-stream")
+    headers.set("Content-Type", accurateMime)
     const contentLength = hostingerRes.headers.get("content-length")
     if (contentLength) {
       headers.set("Content-Length", contentLength)

@@ -466,15 +466,28 @@ export function PhotoViewer({
         const res = await fetch(currentFileUrl)
         if (!res.ok) throw new Error("Could not fetch file")
         const blob = await res.blob()
-        const mime = blob.type || (currentFile.fileType === "IMAGE" ? "image/jpeg" : "application/octet-stream")
-        const fileObj = new File([blob], currentFile.originalName, { type: mime })
+        const realMime = currentFile.mimeType && currentFile.mimeType.startsWith("image/") && !currentFile.mimeType.includes("octet")
+          ? currentFile.mimeType
+          : (currentFile.originalName.toLowerCase().endsWith(".png") ? "image/png"
+            : currentFile.originalName.toLowerCase().endsWith(".webp") ? "image/webp"
+            : currentFile.originalName.toLowerCase().endsWith(".gif") ? "image/gif"
+            : "image/jpeg")
+
+        let fileName = currentFile.originalName
+        if (!/\.(jpe?g|png|webp|gif|svg)$/i.test(fileName)) {
+          const ext = realMime === 'image/png' ? '.png' : realMime === 'image/webp' ? '.webp' : realMime === 'image/gif' ? '.gif' : '.jpg'
+          fileName += ext
+        }
+
+        const imageBlob = blob.slice(0, blob.size, realMime)
+        const fileObj = new File([imageBlob], fileName, { type: realMime, lastModified: Date.now() })
 
         if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [fileObj] })) {
+          // Do NOT pass title/text so WhatsApp treats it strictly as a photo, not a document
           await navigator.share({
             files: [fileObj],
-            title: currentFile.originalName,
           })
-          toast.success("Image shared successfully!")
+          toast.success("Photo shared successfully to WhatsApp!")
         } else if (typeof navigator !== 'undefined' && navigator.share) {
           await navigator.share({
             title: currentFile.originalName,

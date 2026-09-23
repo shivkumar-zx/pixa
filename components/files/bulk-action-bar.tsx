@@ -241,33 +241,56 @@ export function BulkActionBar({ files = [] }: BulkActionBarProps) {
 
       const baseUrl = (process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in").replace(/\/$/, '')
 
-      // 3. Fetch blobs and create File objects
+      // 3. Fetch blobs and create pure Image File objects
       const fileObjects: File[] = await Promise.all(
         imageFiles.map(async (file) => {
-          const directUrl = `${baseUrl}/uploads/${file.bucketName}/${file.storagePath}`
+          // Always use same-origin relative path first (rewritten to Hostinger without CORS)
+          const relativeUrl = `/uploads/${file.bucketName}/${file.storagePath}`
           let blob: Blob
           try {
-            const res = await fetch(directUrl)
-            if (!res.ok) throw new Error("Direct fetch failed")
+            const res = await fetch(relativeUrl)
+            if (!res.ok) throw new Error("Relative fetch failed")
             blob = await res.blob()
           } catch {
             const res = await fetch(`/api/files/${file.id}/download`)
             if (!res.ok) throw new Error("Download route fetch failed")
             blob = await res.blob()
           }
-          const mime = blob.type || file.mimeType || "image/jpeg"
-          return new File([blob], file.originalName, { type: mime })
+
+          // Force genuine image MIME type so WhatsApp recognizes it as a PHOTO, not a DOCUMENT
+          const realMime = file.mimeType && file.mimeType.startsWith("image/") && !file.mimeType.includes("octet")
+            ? file.mimeType
+            : (file.originalName.toLowerCase().endsWith(".png") ? "image/png"
+              : file.originalName.toLowerCase().endsWith(".webp") ? "image/webp"
+              : file.originalName.toLowerCase().endsWith(".gif") ? "image/gif"
+              : "image/jpeg")
+
+          let fileName = file.originalName
+          if (!/\.(jpe?g|png|webp|gif|svg)$/i.test(fileName)) {
+            const ext = realMime === 'image/png' ? '.png' : realMime === 'image/webp' ? '.webp' : realMime === 'image/gif' ? '.gif' : '.jpg'
+            fileName += ext
+          }
+
+          // Re-slice blob with image MIME type to overwrite any octet-stream header
+          const imageBlob = blob.slice(0, blob.size, realMime)
+
+          return new File([imageBlob], fileName, { 
+            type: realMime, 
+            lastModified: Date.now() 
+          })
         })
       )
 
       // 4. Try native navigator.share with files (mobile iOS / Android / macOS Safari)
       if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: fileObjects })) {
         toast.dismiss("wa-bulk-share")
+        // NOTE: Only pass files, do NOT pass title or text.
+        // Passing title or text triggers WhatsApp's document/attachment mode on Android,
+        // whereas files-only triggers WhatsApp's multi-photo send screen!
         await navigator.share({
           files: fileObjects,
-          title: `${fileObjects.length} Photos from PixBox`
         })
-        toast.success(`${fileObjects.length} ${fileObjects.length === 1 ? 'image' : 'images'} shared to WhatsApp!`)
+        toast.success(`${fileObjects.length} ${fileObjects.length === 1 ? 'photo' : 'photos'} ready in WhatsApp!`)
         clearSelection()
       } else {
         // Fallback for Desktop where navigator.canShare with files is not supported
