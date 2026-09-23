@@ -9,6 +9,11 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans" 
 export const metadata: Metadata = {
   title: "PixBox",
   description: "Internal Employee File & Media Dashboard",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
