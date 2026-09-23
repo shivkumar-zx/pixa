@@ -126,8 +126,8 @@ export default function Sidebar({ userRole, storageUsed = 0, storageQuota = 100 
 
         {/* Admin section */}
         {(userRole === "ADMIN" || userRole === "MANAGER") && (
-          <>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 mt-6 mb-2">Admin</p>
+          <div className="pt-5 mt-6 border-t border-border/80">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 px-3 mb-2.5">Admin Management</p>
             {adminNavItems.map((item) => {
               const active = isActive(item.href);
               return (
@@ -157,7 +157,7 @@ export default function Sidebar({ userRole, storageUsed = 0, storageQuota = 100 
                 {item.label}
               </Link>
             )})}
-          </>
+          </div>
         )}
       </nav>
 

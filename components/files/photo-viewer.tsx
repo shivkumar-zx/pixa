@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon, Copy, Check, MessageCircle, ExternalLink, Volume2 } from "lucide-react"
+import { ArrowLeft, Share2, Trash2, Info, Download, ChevronLeft, ChevronRight, Star, FileText, Video, FileArchive, ImageIcon, Copy, Check, MessageCircle, ExternalLink, Volume2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
@@ -448,6 +448,9 @@ export function PhotoViewer({
 
   const ShareModal = () => {
     const [copied, setCopied] = useState(false)
+    const [copiedImage, setCopiedImage] = useState(false)
+    const [sharingDirect, setSharingDirect] = useState(false)
+
     const host = typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
       : (process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixbox.webstaging.in")
@@ -455,6 +458,92 @@ export function PhotoViewer({
     const currentFileUrl = `${cleanHost}/uploads/${currentFile.bucketName}/${currentFile.storagePath}`
     const whatsappText = `Check out "${currentFile.originalName}" on PixBox:\n${currentFileUrl}`
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`
+
+    // 1. Share the actual image file directly to WhatsApp/Apps
+    const handleShareDirectFile = async () => {
+      setSharingDirect(true)
+      try {
+        const res = await fetch(currentFileUrl)
+        if (!res.ok) throw new Error("Could not fetch file")
+        const blob = await res.blob()
+        const mime = blob.type || (currentFile.fileType === "IMAGE" ? "image/jpeg" : "application/octet-stream")
+        const fileObj = new File([blob], currentFile.originalName, { type: mime })
+
+        if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [fileObj] })) {
+          await navigator.share({
+            files: [fileObj],
+            title: currentFile.originalName,
+          })
+          toast.success("Image shared successfully!")
+        } else if (typeof navigator !== 'undefined' && navigator.share) {
+          await navigator.share({
+            title: currentFile.originalName,
+            url: currentFileUrl,
+          })
+        } else {
+          // If browser doesn't support sharing files, trigger download / prompt
+          toast.info("Direct file share not supported by this browser. Downloading image instead!")
+          const a = document.createElement("a")
+          a.href = `/api/files/${currentFile.id}/download`
+          a.download = currentFile.originalName
+          a.click()
+        }
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          console.error("Direct share error:", err)
+          toast.error("Could not share image file directly")
+        }
+      } finally {
+        setSharingDirect(false)
+      }
+    }
+
+    // 2. Copy actual image data to clipboard (for pasting directly in WhatsApp Web)
+    const handleCopyActualImage = async () => {
+      try {
+        setCopiedImage(true)
+        const res = await fetch(currentFileUrl)
+        const blob = await res.blob()
+
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        img.src = URL.createObjectURL(blob)
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+        })
+
+        const canvas = document.createElement("canvas")
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext("2d")
+        ctx?.drawImage(img, 0, 0)
+
+        canvas.toBlob(async (pngBlob) => {
+          if (pngBlob && typeof navigator.clipboard?.write === "function") {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": pngBlob })
+              ])
+              toast.success("Image copied! Paste (Ctrl+V) directly in WhatsApp Web!")
+            } catch {
+              await navigator.clipboard.writeText(currentFileUrl)
+              toast.success("Share link copied to clipboard!")
+            }
+          } else {
+            await navigator.clipboard.writeText(currentFileUrl)
+            toast.success("Share link copied to clipboard!")
+          }
+          setTimeout(() => setCopiedImage(false), 2500)
+        }, "image/png")
+      } catch (err) {
+        await navigator.clipboard.writeText(currentFileUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        toast.success("Share link copied to clipboard!")
+        setCopiedImage(false)
+      }
+    }
 
     const onCopy = async () => {
       try {
@@ -473,7 +562,7 @@ export function PhotoViewer({
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Share File</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Share this file directly via WhatsApp or copy the link below.
+              Share this file directly as an image, via WhatsApp, or copy the link below.
             </DialogDescription>
           </DialogHeader>
 
@@ -492,31 +581,45 @@ export function PhotoViewer({
             </div>
           </div>
 
-          {/* Dedicated WhatsApp Share Button */}
-          <div className="mt-4 space-y-2">
+          {/* Action Buttons */}
+          <div className="mt-4 space-y-2.5">
+            {/* Direct Image File Share (Sends actual photo to WhatsApp/Apps) */}
+            <Button 
+              onClick={handleShareDirectFile} 
+              disabled={sharingDirect}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-indigo-500/20 transition-all"
+            >
+              {sharingDirect ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Preparing Photo...</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-5 w-5" />
+                  <span>Share Photo Directly (Image File)</span>
+                </>
+              )}
+            </Button>
+
+            {/* WhatsApp Link Share */}
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
               <Button className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2.5 shadow-md shadow-emerald-500/20 transition-all">
                 <MessageCircle className="h-5 w-5 fill-current" />
-                Share on WhatsApp
+                <span>Share via WhatsApp (Link)</span>
               </Button>
             </a>
 
-            {typeof navigator !== 'undefined' && navigator.share && (
+            {/* Copy Actual Image for WhatsApp Web */}
+            {currentFile.fileType === "IMAGE" && (
               <Button 
                 variant="outline" 
-                onClick={async () => {
-                  try {
-                    await navigator.share({
-                      title: currentFile.originalName,
-                      text: `Check out "${currentFile.originalName}" on PixBox`,
-                      url: currentFileUrl,
-                    })
-                  } catch (e) {}
-                }}
-                className="w-full rounded-xl h-11 flex items-center justify-center gap-2.5"
+                onClick={handleCopyActualImage}
+                disabled={copiedImage}
+                className="w-full rounded-xl h-10 flex items-center justify-center gap-2 border-border/80 text-foreground text-xs font-semibold hover:bg-muted"
               >
-                <Share2 className="h-4 w-4" />
-                More Sharing Options
+                {copiedImage ? <Check className="h-4 w-4 text-emerald-500" /> : <ImageIcon className="h-4 w-4 text-primary" />}
+                <span>{copiedImage ? "Image Copied! Press Ctrl+V in WhatsApp" : "Copy Image to Clipboard (Paste in WhatsApp Web)"}</span>
               </Button>
             )}
           </div>

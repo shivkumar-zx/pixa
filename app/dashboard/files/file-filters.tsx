@@ -59,15 +59,16 @@ export default function FileFilters() {
           </div>
         </div>
       )}
-      <div className="flex items-center gap-3 flex-wrap flex-1">
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-full relative">
+      {/* Filter Row: Type pills on left, View/Year on the far right */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-full relative w-fit shrink-0">
           {["All", "Images", "Videos", "Documents"].map((filter) => {
             const isActive = currentType === filter
             return (
               <button
                 key={filter}
                 onClick={() => updateParams("type", filter)}
-                className={`relative px-4 py-1.5 rounded-full text-sm font-medium transition-colors z-10 ${
+                className={`relative px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors z-10 ${
                   isActive
                     ? "text-slate-900 dark:text-slate-100"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
@@ -86,10 +87,9 @@ export default function FileFilters() {
             )
           })}
         </div>
-      </div>
       
-      <div className="flex items-center justify-start gap-3">
-        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 relative">
+        <div className="flex items-center justify-end gap-2.5 sm:ml-auto shrink-0">
+          <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 relative">
           {[
             { id: "grid", icon: Grid, title: "Grid View" },
             { id: "list", icon: List, title: "List View" }
@@ -208,5 +208,6 @@ export default function FileFilters() {
         </div>
       </div>
     </div>
+  </div>
   )
 }

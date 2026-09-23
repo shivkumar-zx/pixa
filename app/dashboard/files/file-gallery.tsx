@@ -124,8 +124,8 @@ export default function FileGallery({ groupedFiles, scrubberLinks }: FileGallery
         />
       )}
 
-      <div className="flex gap-4 sm:gap-6 relative items-start mt-2" ref={galleryRef}>
-        <div className="flex-1 min-w-0 pr-16">
+      <div className="flex gap-0 lg:gap-6 relative items-start mt-2 w-full" ref={galleryRef}>
+        <div className="flex-1 min-w-0 pr-0 lg:pr-16 w-full">
           {(() => {
             let currentMonthYear = ""
             return groupedFiles.map(group => {
