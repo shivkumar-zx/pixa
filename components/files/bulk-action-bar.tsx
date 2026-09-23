@@ -1,9 +1,29 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useBulkAction } from "./bulk-action-provider"
-import { Download, Trash2, FolderOutput, X, Loader2, MessageCircle } from "lucide-react"
+import { 
+  Download, 
+  Trash2, 
+  FolderOutput, 
+  X, 
+  Loader2, 
+  MessageCircle, 
+  Folder, 
+  FolderPlus, 
+  Check, 
+  Home 
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -21,12 +41,28 @@ interface BulkActionBarProps {
   files?: BulkActionFile[]
 }
 
+interface CategoryItem {
+  id: string
+  name: string
+  _count?: { files: number }
+}
+
 export function BulkActionBar({ files = [] }: BulkActionBarProps) {
   const { selectedFiles, clearSelection } = useBulkAction()
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false)
+
+  // Move Modal State
+  const [showMoveModal, setShowMoveModal] = useState(false)
+  const [folders, setFolders] = useState<CategoryItem[]>([])
+  const [loadingFolders, setLoadingFolders] = useState(false)
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [isMoving, setIsMoving] = useState(false)
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState("")
+  const [isSubmittingFolder, setIsSubmittingFolder] = useState(false)
 
   if (selectedFiles.size === 0) return null
 
@@ -43,7 +79,6 @@ export function BulkActionBar({ files = [] }: BulkActionBarProps) {
 
       if (!res.ok) throw new Error("Download failed")
 
-      // Trigger download
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -86,8 +121,82 @@ export function BulkActionBar({ files = [] }: BulkActionBarProps) {
     }
   }
 
-  const handleMove = () => {
-    toast.info("Bulk move is coming soon!")
+  // Fetch folders for Move Modal
+  const openMoveModal = async () => {
+    setShowMoveModal(true)
+    setSelectedFolderId(null)
+    setIsCreatingFolder(false)
+    setNewFolderName("")
+    setLoadingFolders(true)
+    try {
+      const res = await fetch("/api/categories")
+      if (res.ok) {
+        const data = await res.json()
+        setFolders(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error("Failed to load folders:", err)
+    } finally {
+      setLoadingFolders(false)
+    }
+  }
+
+  // Execute Bulk Move
+  const handleExecuteMove = async () => {
+    try {
+      setIsMoving(true)
+      const res = await fetch("/api/files/bulk/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileIds: Array.from(selectedFiles),
+          categoryId: selectedFolderId
+        })
+      })
+
+      if (!res.ok) throw new Error("Failed to move files")
+
+      const targetFolderName = selectedFolderId
+        ? folders.find(f => f.id === selectedFolderId)?.name || "Folder"
+        : "Main Gallery"
+
+      toast.success(`Successfully moved ${count} ${count === 1 ? 'file' : 'files'} to "${targetFolderName}"`)
+      setShowMoveModal(false)
+      clearSelection()
+      router.refresh()
+    } catch (err) {
+      toast.error("Failed to move files. Please try again.")
+    } finally {
+      setIsMoving(false)
+    }
+  }
+
+  // Inline Create Folder & Select
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newFolderName.trim()) return
+
+    try {
+      setIsSubmittingFolder(true)
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newFolderName.trim() })
+      })
+
+      if (!res.ok) throw new Error("Failed to create folder")
+
+      const newFolder = await res.json()
+      setFolders(prev => [newFolder, ...prev])
+      setSelectedFolderId(newFolder.id)
+      setNewFolderName("")
+      setIsCreatingFolder(false)
+      toast.success(`Folder "${newFolder.name}" created!`)
+    } catch (err) {
+      toast.error("Could not create folder")
+    } finally {
+      setIsSubmittingFolder(false)
+    }
   }
 
   const handleWhatsAppShare = async () => {
@@ -202,75 +311,227 @@ export function BulkActionBar({ files = [] }: BulkActionBarProps) {
   }
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-blue-600 text-white shadow-2xl rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex items-center gap-3 sm:gap-6 animate-in slide-in-from-bottom-10 fade-in duration-300 max-w-[95vw]">
-      <div className="flex items-center gap-2 sm:gap-3 pr-2 sm:pr-4 border-r border-blue-400/50 shrink-0">
-        <span className="text-sm sm:text-base font-semibold whitespace-nowrap">
-          {count} selected
-        </span>
+    <>
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-blue-600 text-white shadow-2xl rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex items-center gap-3 sm:gap-6 animate-in slide-in-from-bottom-10 fade-in duration-300 max-w-[95vw]">
+        <div className="flex items-center gap-2 sm:gap-3 pr-2 sm:pr-4 border-r border-blue-400/50 shrink-0">
+          <span className="text-sm sm:text-base font-semibold whitespace-nowrap">
+            {count} selected
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Send to WhatsApp button with white icon on hover */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleWhatsAppShare}
+            disabled={isDownloading || isDeleting || isSharingWhatsApp || isMoving}
+            className="group h-9 px-2.5 sm:px-3.5 rounded-full text-white bg-emerald-500/30 hover:bg-[#25D366] hover:text-white border border-emerald-400/40 flex items-center gap-1.5 transition-all text-xs font-semibold shadow-sm"
+            title="Send selected images to WhatsApp"
+          >
+            {isSharingWhatsApp ? (
+              <Loader2 size={16} className="animate-spin text-white" />
+            ) : (
+              <MessageCircle size={16} className="fill-emerald-400 text-white group-hover:fill-white group-hover:text-white transition-colors" />
+            )}
+            <span className="whitespace-nowrap group-hover:text-white transition-colors">WhatsApp</span>
+          </Button>
+
+          {/* Move to Folder button with white icon on hover */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={openMoveModal}
+            disabled={isDownloading || isDeleting || isSharingWhatsApp || isMoving}
+            className="group h-9 w-9 rounded-full text-white hover:bg-white/20 hover:text-white transition-colors"
+            title="Move to Folder"
+          >
+            <FolderOutput size={18} className="text-white group-hover:text-white transition-colors" />
+          </Button>
+
+          {/* Download button with white icon on hover */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleDownload} 
+            disabled={isDownloading || isDeleting || isSharingWhatsApp || isMoving}
+            className="group h-9 w-9 rounded-full text-white hover:bg-white/20 hover:text-white transition-colors"
+            title="Download as ZIP"
+          >
+            {isDownloading ? (
+              <Loader2 size={18} className="animate-spin text-white" />
+            ) : (
+              <Download size={18} className="text-white group-hover:text-white transition-colors" />
+            )}
+          </Button>
+
+          {/* Delete button with white icon on hover */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleDelete}
+            disabled={isDownloading || isDeleting || isSharingWhatsApp || isMoving}
+            className="group h-9 w-9 rounded-full text-white hover:bg-red-500 hover:text-white transition-colors"
+            title="Delete"
+          >
+            {isDeleting ? (
+              <Loader2 size={18} className="animate-spin text-white" />
+            ) : (
+              <Trash2 size={18} className="text-white group-hover:text-white transition-colors" />
+            )}
+          </Button>
+        </div>
+
+        <div className="pl-1 sm:pl-4 border-l border-blue-400/50 shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={clearSelection} 
+            className="group h-9 w-9 rounded-full text-blue-100 hover:bg-white/20 hover:text-white transition-colors"
+            title="Clear selection"
+          >
+            <X size={18} className="text-blue-100 group-hover:text-white transition-colors" />
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Send to WhatsApp button */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleWhatsAppShare}
-          disabled={isDownloading || isDeleting || isSharingWhatsApp}
-          className="h-9 px-2.5 sm:px-3.5 rounded-full text-white bg-emerald-500/30 hover:bg-[#25D366] hover:text-white border border-emerald-400/40 flex items-center gap-1.5 transition-all text-xs font-semibold shadow-sm"
-          title="Send selected images to WhatsApp"
-        >
-          {isSharingWhatsApp ? (
-            <Loader2 size={16} className="animate-spin text-white" />
-          ) : (
-            <MessageCircle size={16} className="fill-emerald-400 text-white" />
-          )}
-          <span className="whitespace-nowrap">WhatsApp</span>
-        </Button>
+      {/* Move to Folder Dialog */}
+      <Dialog open={showMoveModal} onOpenChange={setShowMoveModal}>
+        <DialogContent className="sm:max-w-md text-foreground rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <FolderOutput className="text-blue-600" size={20} />
+              Move {count} {count === 1 ? "File" : "Files"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Select a destination folder or move to main gallery.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={handleMove}
-          className="h-9 w-9 rounded-full text-white hover:bg-white/20"
-          title="Move"
-        >
-          <FolderOutput size={18} />
-        </Button>
+          <div className="mt-3 space-y-3">
+            {/* Create new folder button/input */}
+            {isCreatingFolder ? (
+              <form onSubmit={handleCreateFolder} className="flex items-center gap-2 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-200">
+                <Input 
+                  autoFocus
+                  placeholder="New folder name..."
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  className="h-8 text-xs bg-white dark:bg-slate-900 border-none focus-visible:ring-1"
+                />
+                <Button 
+                  type="submit" 
+                  size="sm" 
+                  disabled={isSubmittingFolder || !newFolderName.trim()}
+                  className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                >
+                  {isSubmittingFolder ? <Loader2 size={12} className="animate-spin" /> : "Create"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsCreatingFolder(false)}
+                  className="h-8 w-8 p-0 text-xs shrink-0"
+                >
+                  <X size={14} />
+                </Button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsCreatingFolder(true)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-colors"
+              >
+                <FolderPlus size={16} />
+                <span>+ Create New Folder</span>
+              </button>
+            )}
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={handleDownload} 
-          disabled={isDownloading || isDeleting || isSharingWhatsApp}
-          className="h-9 w-9 rounded-full text-white hover:bg-white/20"
-          title="Download as ZIP"
-        >
-          {isDownloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-        </Button>
+            {/* Folder selection list */}
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100 dark:divide-slate-800">
+              {/* Option 1: Root / Main Gallery (No folder) */}
+              <div 
+                onClick={() => setSelectedFolderId(null)}
+                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
+                  selectedFolderId === null 
+                    ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-500/40 text-blue-700 dark:text-blue-300 font-semibold" 
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Home size={18} className={selectedFolderId === null ? "text-blue-600" : "text-slate-400"} />
+                  <span className="text-sm">Main Gallery (No Folder)</span>
+                </div>
+                {selectedFolderId === null && <Check size={16} className="text-blue-600" />}
+              </div>
 
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={handleDelete}
-          disabled={isDownloading || isDeleting || isSharingWhatsApp}
-          className="h-9 w-9 rounded-full text-white hover:bg-red-500 hover:text-white"
-          title="Delete"
-        >
-          {isDeleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-        </Button>
-      </div>
+              {/* User Folders */}
+              {loadingFolders ? (
+                <div className="py-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Loading folders...</span>
+                </div>
+              ) : (
+                folders.map(folder => (
+                  <div 
+                    key={folder.id}
+                    onClick={() => setSelectedFolderId(folder.id)}
+                    className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
+                      selectedFolderId === folder.id 
+                        ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-500/40 text-blue-700 dark:text-blue-300 font-semibold" 
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Folder size={18} className={selectedFolderId === folder.id ? "text-blue-600 fill-blue-500/20" : "text-amber-500 fill-amber-500/20"} />
+                      <span className="text-sm truncate">{folder.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {folder._count && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted-foreground">
+                          {folder._count.files}
+                        </span>
+                      )}
+                      {selectedFolderId === folder.id && <Check size={16} className="text-blue-600" />}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
-      <div className="pl-1 sm:pl-4 border-l border-blue-400/50 shrink-0">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={clearSelection} 
-          className="h-9 w-9 rounded-full text-blue-200 hover:bg-white/20 hover:text-white"
-          title="Clear selection"
-        >
-          <X size={18} />
-        </Button>
-      </div>
-    </div>
+          <DialogFooter className="mt-4 flex sm:justify-end gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowMoveModal(false)}
+              disabled={isMoving}
+              className="rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleExecuteMove}
+              disabled={isMoving}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs flex items-center gap-1.5"
+            >
+              {isMoving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Moving...</span>
+                </>
+              ) : (
+                <>
+                  <FolderOutput size={14} />
+                  <span>Move Here</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

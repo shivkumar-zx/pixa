@@ -56,8 +56,12 @@ export default async function DashboardPage() {
   const userRole = (session.user as { role?: string }).role
 
   // Fetch stats in parallel
-  const [user, totalFiles, uploadsThisMonth, sharedWithMe, recentFiles, recentActivity] = await Promise.all([
+  const [user, fileStorage, totalFiles, uploadsThisMonth, sharedWithMe, recentFiles, recentActivity] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { storageUsed: true, storageQuota: true } }),
+    prisma.file.aggregate({
+      where: { uploadedById: userId, status: "ACTIVE" },
+      _sum: { size: true }
+    }),
     prisma.file.count({ where: { uploadedById: userId, status: "ACTIVE" } }),
     prisma.file.count({
       where: {
@@ -80,7 +84,7 @@ export default async function DashboardPage() {
     }),
   ])
 
-  const storageUsed = user?.storageUsed ?? BigInt(0)
+  const storageUsed = fileStorage._sum.size ?? user?.storageUsed ?? BigInt(0)
   const storageQuota = user?.storageQuota ?? BigInt(5368709120)
   const storagePercent = Math.min(100, Math.round((Number(storageUsed) / Number(storageQuota)) * 100))
   const storageColor = storagePercent > 80 ? "bg-red-500" : storagePercent > 60 ? "bg-amber-500" : "bg-emerald-500"

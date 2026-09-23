@@ -22,13 +22,32 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let storageQuota = BigInt(5368709120) // 5GB default
 
   if (user.id) {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { storageUsed: true, storageQuota: true },
-    })
+    const [dbUser, fileAggregate] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { storageUsed: true, storageQuota: true },
+      }),
+      prisma.file.aggregate({
+        where: {
+          uploadedById: user.id,
+          status: "ACTIVE"
+        },
+        _sum: { size: true }
+      })
+    ])
+
     if (dbUser) {
-      storageUsed = dbUser.storageUsed
       storageQuota = dbUser.storageQuota
+      const realUsed = fileAggregate._sum.size ?? BigInt(0)
+      storageUsed = realUsed
+
+      // Sync user table in the background if out of sync
+      if (dbUser.storageUsed !== realUsed) {
+        prisma.user.update({
+          where: { id: user.id },
+          data: { storageUsed: realUsed }
+        }).catch(() => {})
+      }
     }
   }
 

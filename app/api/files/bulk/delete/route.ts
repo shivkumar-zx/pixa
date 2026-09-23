@@ -44,6 +44,15 @@ export async function POST(req: Request) {
       }
     })
 
+    // Update user storage quota
+    const totalDeletedBytes = files.reduce((acc, f) => acc + BigInt(f.size), BigInt(0))
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        storageUsed: { decrement: totalDeletedBytes }
+      }
+    }).catch(() => {})
+
     // Log bulk delete activity
     await prisma.activityLog.create({
       data: {
