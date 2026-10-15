@@ -110,7 +110,7 @@ export default function FilePreview({ fileId, mimeType, fileName }: FilePreviewP
         <p className="font-medium text-sm">No preview available for this file type</p>
         <p className="text-xs text-muted-foreground mt-1">{mimeType}</p>
       </div>
-      <a href={url} download={fileName} target="_blank" rel="noreferrer">
+      <a href={`/api/files/${fileId}/download`} download={fileName}>
         <Button size="sm" className="gap-2 mt-2">
           <Download size={14} /> Download to View
         </Button>

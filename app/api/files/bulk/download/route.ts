@@ -34,6 +34,8 @@ export async function POST(req: Request) {
 
     const zip = new JSZip()
     const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
+    const hostingerUrl = process.env.HOSTINGER_API_URL || `${baseUrl.replace(/\/$/, '')}/api.php`
+    const hostingerSecret = process.env.HOSTINGER_API_SECRET || "pixbox_secure_upload_key_123!"
 
     for (const file of files) {
       // 1. Check local disk
@@ -44,14 +46,29 @@ export async function POST(req: Request) {
         continue
       }
 
-      // 2. Fetch from Hostinger
-      const fileUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
+      // 2. Fetch from Hostinger via uncompressed binary api.php
+      const apiDownloadUrl = `${hostingerUrl}?key=${encodeURIComponent(hostingerSecret)}&action=download&bucket=${encodeURIComponent(file.bucketName)}&path=${encodeURIComponent(file.storagePath)}&filename=${encodeURIComponent(file.originalName)}`
+
       try {
-        const res = await fetch(fileUrl, {
+        let res = await fetch(apiDownloadUrl, {
           headers: {
             "Accept-Encoding": "identity",
-          }
+            "Cache-Control": "no-transform",
+          },
+          cache: "no-store",
         })
+
+        if (!res.ok) {
+          const staticUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
+          res = await fetch(staticUrl, {
+            headers: {
+              "Accept-Encoding": "identity",
+              "Cache-Control": "no-transform",
+            },
+            cache: "no-store",
+          })
+        }
+
         if (res.ok) {
           const arrayBuf = await res.arrayBuffer()
           zip.file(file.originalName, Buffer.from(arrayBuf), { binary: true })
@@ -68,6 +85,7 @@ export async function POST(req: Request) {
         "Content-Disposition": `attachment; filename="pixbox-download-${Date.now()}.zip"`,
         "Content-Type": "application/zip",
         "Content-Length": zipBuffer.length.toString(),
+        "Cache-Control": "no-transform, no-cache",
       }
     })
   } catch (error: any) {

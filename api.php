@@ -1,5 +1,12 @@
 <?php
 // Hostinger Secure Upload, Download & Delete API Script
+// Lossless Binary File Handling - Disables Server Compression
+
+// Disable LiteSpeed/Apache GZIP and PHP zlib output compression
+if (function_exists('apache_setenv')) {
+    @apache_setenv('no-gzip', '1');
+}
+@ini_set('zlib.output_compression', 'Off');
 
 // IMPORTANT: This must match the HOSTINGER_API_SECRET in your Vercel .env settings.
 $secret = 'pixbox_secure_upload_key_123!'; 
@@ -34,16 +41,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'download') {
     }
 
     $filename = $_GET['filename'] ?? basename($targetFile);
-    $mime = mime_content_type($targetFile) ?: 'application/octet-stream';
+    $filesize = filesize($targetFile);
 
+    // Serve as application/octet-stream to prevent web server image compression / WebP conversion
     header('Content-Description: File Transfer');
-    header('Content-Type: ' . $mime);
+    header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . rawurlencode($filename) . '"');
     header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0, no-transform');
     header('Pragma: public');
-    header('Content-Length: ' . filesize($targetFile));
+    header('Content-Length: ' . $filesize);
 
     readfile($targetFile);
     exit;

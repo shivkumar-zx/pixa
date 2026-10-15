@@ -1,0 +1,14 @@
+# Prevent Apache / LiteSpeed from compressing image and binary files
+<IfModule mod_deflate.c>
+    SetEnvIfNoCase Request_URI "\.(?:gif|jpe?g|png|webp|mp4|zip|pdf)$" no-gzip dont-vary
+</IfModule>
+
+# Force browsers, proxies, and LiteSpeed never to transform or downscale images
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-transform"
+</IfModule>
+
+# LiteSpeed Web Server - Disable automatic image optimization on uploads
+<IfModule LiteSpeed>
+    CacheDisable
+</IfModule>

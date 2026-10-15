@@ -79,19 +79,37 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
       })
     }
 
-    // 2. Fetch from Hostinger storage with uncompressed original bytes
+    // 2. Fetch from Hostinger storage with 100% UNCOMPRESSED original bytes
     const baseUrl = process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in"
-    const fileUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
+    const hostingerUrl = process.env.HOSTINGER_API_URL || `${baseUrl.replace(/\/$/, '')}/api.php`
+    const hostingerSecret = process.env.HOSTINGER_API_SECRET || "pixbox_secure_upload_key_123!"
 
-    // Request with identity encoding to prevent Hostinger LiteSpeed/CDN from compressing (GZIP/Brotli)
-    const hostingerRes = await fetch(fileUrl, {
+    // Primary route: Request directly via api.php uncompressed binary streaming (bypasses LiteSpeed image compression)
+    const apiDownloadUrl = `${hostingerUrl}?key=${encodeURIComponent(hostingerSecret)}&action=download&bucket=${encodeURIComponent(file.bucketName)}&path=${encodeURIComponent(file.storagePath)}&filename=${encodeURIComponent(file.originalName)}`
+
+    let hostingerRes = await fetch(apiDownloadUrl, {
       headers: {
         "Accept-Encoding": "identity",
-      }
+        "Cache-Control": "no-transform",
+      },
+      cache: "no-store",
     })
 
+    // Fallback: If api.php returns non-200, try direct static storage URL
     if (!hostingerRes.ok) {
-      console.error(`Download fetch failed (${hostingerRes.status}): ${fileUrl}`)
+      console.warn(`api.php download failed (${hostingerRes.status}), attempting direct storage fallback...`)
+      const staticUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${file.bucketName}/${file.storagePath}`
+      hostingerRes = await fetch(staticUrl, {
+        headers: {
+          "Accept-Encoding": "identity",
+          "Cache-Control": "no-transform",
+        },
+        cache: "no-store",
+      })
+    }
+
+    if (!hostingerRes.ok) {
+      console.error(`Download fetch failed (${hostingerRes.status}): ${file.originalName}`)
       return NextResponse.json({ error: "File not found on storage" }, { status: 404 })
     }
 
@@ -103,7 +121,8 @@ export async function GET(req: Request, { params }: { params: { fileId: string }
     headers.set("Content-Disposition", `attachment; filename="${encodeURIComponent(file.originalName)}"`)
     headers.set("Content-Type", accurateMime)
     headers.set("Content-Length", buffer.length.toString())
-    headers.set("Cache-Control", "no-transform, public, max-age=86400")
+    headers.set("Cache-Control", "no-transform, no-cache, no-store, must-revalidate")
+    headers.set("Pragma", "no-cache")
 
     return new NextResponse(buffer, { headers })
 
