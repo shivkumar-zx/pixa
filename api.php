@@ -2,11 +2,26 @@
 // Hostinger Secure Upload, Download & Delete API Script
 // Lossless Binary File Handling - Disables Server Compression
 
+// Increase limits for large binary files
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '300');
+
 // Disable LiteSpeed/Apache GZIP and PHP zlib output compression
 if (function_exists('apache_setenv')) {
     @apache_setenv('no-gzip', '1');
 }
 @ini_set('zlib.output_compression', 'Off');
+
+// CORS Headers for secure API access
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 // IMPORTANT: This must match the HOSTINGER_API_SECRET in your Vercel .env settings.
 $secret = 'pixbox_secure_upload_key_123!'; 
@@ -43,14 +58,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'download') {
     $filename = $_GET['filename'] ?? basename($targetFile);
     $filesize = filesize($targetFile);
 
-    // Serve as application/octet-stream to prevent web server image compression / WebP conversion
+    // Serve as application/octet-stream with no-transform to prevent web server compression or WebP conversion
+    header('X-LiteSpeed-Cache-Control: no-cache');
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . rawurlencode($filename) . '"');
     header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0, no-transform');
-    header('Pragma: public');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0, no-transform, no-store, no-cache');
+    header('Pragma: no-cache');
     header('Content-Length: ' . $filesize);
 
     readfile($targetFile);
@@ -65,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     $fileData = file_get_contents('php://input');
-    if (file_put_contents($targetFile, $fileData)) {
+    if ($fileData !== false && file_put_contents($targetFile, $fileData)) {
         http_response_code(200);
         echo "OK";
     } else {
