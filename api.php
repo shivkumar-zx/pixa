@@ -24,9 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // IMPORTANT: This must match the HOSTINGER_API_SECRET in your Vercel .env settings.
-$secret = 'pixbox_secure_upload_key_123!'; 
+$validSecrets = [
+    'pixbox_secure_upload_key_123!',
+    'pixbox_secure_upload_key_123',
+];
 
-if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
+$rawKey = $_GET['key'] ?? '';
+$cleanKey = trim(urldecode($rawKey), " \t\n\r\0\x0B\"'");
+
+if (!$cleanKey || (!in_array($cleanKey, $validSecrets) && !in_array(trim($rawKey, " \t\n\r\0\x0B\"'"), $validSecrets))) {
     http_response_code(401);
     die('Unauthorized');
 }

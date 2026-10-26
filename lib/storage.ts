@@ -12,16 +12,12 @@ export function generateStoragePath(userId: string, storedName: string): string 
 }
 
 export async function getSignedUploadUrl(bucket: string, storagePath: string, expiresIn = 300, contentType?: string): Promise<string> {
-  const hostingerUrl = process.env.HOSTINGER_API_URL
-  const hostingerSecret = process.env.HOSTINGER_API_SECRET
+  const baseUrl = (process.env.NEXT_PUBLIC_HOSTINGER_BASE_URL || "https://pixboximg.webstaging.in").replace(/\/$/, '')
+  const hostingerUrl = (process.env.HOSTINGER_API_URL || `${baseUrl}/api.php`).trim()
+  const hostingerSecret = (process.env.HOSTINGER_API_SECRET || "pixbox_secure_upload_key_123!").replace(/['"\s]/g, '')
 
-  if (hostingerUrl && hostingerSecret) {
-    // Direct upload URL to Hostinger - Completely bypasses Vercel 4.5MB payload limit!
-    return `${hostingerUrl}?key=${encodeURIComponent(hostingerSecret)}&bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(storagePath)}`
-  }
-
-  // Fallback for local development
-  return `/api/local-storage/upload?bucket=${bucket}&path=${encodeURIComponent(storagePath)}`
+  // Direct upload URL to Hostinger - Completely bypasses Vercel 4.5MB payload limit!
+  return `${hostingerUrl}?key=${encodeURIComponent(hostingerSecret)}&bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(storagePath)}`
 }
 
 export async function getSignedDownloadUrl(bucket: string, storagePath: string, expiresIn = 900): Promise<string> {
