@@ -4,11 +4,11 @@
 </IfModule>
 
 # Force browsers, proxies, and LiteSpeed never to transform or downscale images
-# Enable CORS so Vercel can fetch images without blockages
+# Enable full CORS including PUT for direct browser uploads
 <IfModule mod_headers.c>
     Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, OPTIONS, DELETE"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Origin, Accept"
     Header set Cache-Control "no-transform"
 </IfModule>
 
