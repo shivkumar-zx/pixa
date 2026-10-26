@@ -12,7 +12,15 @@ export function generateStoragePath(userId: string, storedName: string): string 
 }
 
 export async function getSignedUploadUrl(bucket: string, storagePath: string, expiresIn = 300, contentType?: string): Promise<string> {
-  // Return a relative URL to our local API route that will handle the PUT request
+  const hostingerUrl = process.env.HOSTINGER_API_URL
+  const hostingerSecret = process.env.HOSTINGER_API_SECRET
+
+  if (hostingerUrl && hostingerSecret) {
+    // Direct upload URL to Hostinger - Completely bypasses Vercel 4.5MB payload limit!
+    return `${hostingerUrl}?key=${encodeURIComponent(hostingerSecret)}&bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(storagePath)}`
+  }
+
+  // Fallback for local development
   return `/api/local-storage/upload?bucket=${bucket}&path=${encodeURIComponent(storagePath)}`
 }
 

@@ -14,7 +14,7 @@ if (function_exists('apache_setenv')) {
 
 // CORS Headers for secure API access
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
 // Handle preflight OPTIONS request
@@ -73,8 +73,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'download') {
     exit;
 }
 
-// Handle File Uploads (POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Handle File Uploads (POST or PUT)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
     $targetDir = dirname($targetFile);
     if (!file_exists($targetDir)) {
         mkdir($targetDir, 0755, true);
